@@ -432,21 +432,11 @@ const AdminPage: React.FC = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reportType, setReportType] = useState("");
-  const [isAuthenticated, setIsAuthenticated] = useState(false); // Initially not authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
-  const [passwordManagerLoading, setPasswordManagerLoading] = useState(false); // Renamed from 'loading' to avoid conflict
-  const [showPasswordManager, setShowPasswordManager] = useState(false);
-  const [passwordSettings, setPasswordSettings] = useState({
-    reportPassword: '',
-    adminPassword: '',
-    newReportPassword: '',
-    newAdminPassword: ''
-  });
-  const [passwordUpdateStatus, setPasswordUpdateStatus] = useState<{
-    type: 'success' | 'error' | null;
-    message: string;
-  }>({ type: null, message: '' });
+  const [passwordManagerLoading, setPasswordManagerLoading] = useState(false);
+  const [authToken, setAuthToken] = useState('');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -461,7 +451,7 @@ const AdminPage: React.FC = () => {
   const handlePasswordSubmit = async () => {
     if (!passwordInput.trim()) return;
 
-    setPasswordManagerLoading(true); // Use the specific loading state for password submission
+    setPasswordManagerLoading(true);
     setPasswordError(false);
 
     try {
@@ -478,8 +468,9 @@ const AdminPage: React.FC = () => {
 
       const result = await response.json();
 
-      if (result.success && result.role === 'admin') {
+      if (result.success) {
         setIsAuthenticated(true);
+        setAuthToken(passwordInput); // Store the password as auth token
         setPasswordInput('');
       } else {
         setPasswordError(true);
@@ -488,7 +479,7 @@ const AdminPage: React.FC = () => {
       console.error('Authentication error:', error);
       setPasswordError(true);
     } finally {
-      setPasswordManagerLoading(false); // Reset the loading state
+      setPasswordManagerLoading(false);
     }
   };
 
@@ -496,18 +487,17 @@ const AdminPage: React.FC = () => {
     try {
       const response = await fetch("/api/reports", {
         headers: {
-          'Authorization': 'Bearer admin123', // Default admin password - consider a more secure method
-          'X-Page': 'admin',
-          'X-Username': 'admin'
+          'Authorization': `Bearer ${authToken}`,
+          'x-page': 'admin',
+          'x-username': 'admin'
         }
       });
       if (response.ok) {
         const data = await response.json();
         setReports(data);
       } else {
-        // Handle cases where fetching might fail due to auth or other issues
         if (response.status === 401 || response.status === 403) {
-          setIsAuthenticated(false); // Force re-authentication
+          setIsAuthenticated(false);
           setError("Authentication failed. Please log in again.");
         } else {
           setError("Failed to fetch reports");
@@ -625,12 +615,12 @@ const AdminPage: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/reports/${reportId}`, {
+      const response = await fetch(`/api/reports?id=${reportId}`, {
         method: "DELETE",
         headers: {
-          'Authorization': 'Bearer admin123', // Ensure auth token is used
-          'X-Page': 'admin',
-          'X-Username': 'admin'
+          'Authorization': `Bearer ${authToken}`,
+          'x-page': 'admin',
+          'x-username': 'admin'
         }
       });
 
@@ -722,1176 +712,225 @@ const AdminPage: React.FC = () => {
     return new Date(dateString).toLocaleString();
   };
 
-  const exportReportAsJSON = (report: Report) => {
-    try {
-      const dataStr = JSON.stringify(report, null, 2);
-      const dataUri =
-        "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
-
-      const exportFileDefaultName = `report-${report.id.slice(0, 8)}-${new Date(report.timestamp).toISOString().split("T")[0]}.json`;
-
-      const linkElement = document.createElement("a");
-      linkElement.setAttribute("href", dataUri);
-      linkElement.setAttribute("download", exportFileDefaultName);
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-    } catch (error) {
-      console.error("Error exporting JSON:", error);
-      alert("Error exporting report as JSON");
-    }
-  };
-
-  const exportReportAsCSV = (report: Report) => {
-    try {
-      const csvData = [
-        ["Section", "Item", "Amount", "Remark"],
-        // Income Section
-        ...(report.income || []).map((item) => [
-          "Income",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Deposit Section
-        ...(report.deposit || []).map((item) => [
-          "Deposit",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Stamp Section
-        ...(report.stamp || []).map((item) => [
-          "Stamp",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Balance Section
-        ...(report.balance || []).map((item) => [
-          "Balance",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // MGVCL Section
-        ...(report.mgvcl || []).map((item) => [
-          "MGVCL",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Expenses Section
-        ...(report.expences || []).map((item) => [
-          "Expenses",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Online Payment Section
-        ...(report.onlinePayment || []).map((item) => [
-          "Online Payment",
-          item.name || "",
-          item.amount || 0,
-          item.remark || "",
-        ]),
-        // Totals
-        ["", "", "", ""],
-        ["TOTALS", "", "", ""],
-        ["Total Income", "", report.totals?.income || 0, ""],
-        ["Total Deposit", "", report.totals?.deposit || 0, ""],
-        ["Total Stamp", "", report.totals?.stamp || 0, ""],
-        ["Total Balance", "", report.totals?.balance || 0, ""],
-        ["Total MGVCL", "", report.totals?.mgvcl || 0, ""],
-        ["Total Expenses", "", report.totals?.expences || 0, ""],
-        ["Total Online Payment", "", report.totals?.onlinePayment || 0, ""],
-        [
-          "Net Amount",
-          "",
-          (report.totals?.income || 0) - (report.totals?.expences || 0),
-          "",
-        ],
-      ];
-
-      const csvContent = csvData
-        .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-      const dataUri =
-        "data:text/csv;charset=utf-8,\uFEFF" + encodeURIComponent(csvContent);
-
-      const exportFileDefaultName = `report-${report.id.slice(0, 8)}-${new Date(report.timestamp).toISOString().split("T")[0]}.csv`;
-
-      const linkElement = document.createElement("a");
-      linkElement.setAttribute("href", dataUri);
-      linkElement.setAttribute("download", exportFileDefaultName);
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-    } catch (error) {
-      console.error("Error exporting CSV:", error);
-      alert("Error exporting report as CSV");
-    }
-  };
-
-  const exportReportAsPDF = (report: Report) => {
-    try {
-      // Open the print view in a new window for PDF generation
-      const printWindow = window.open(`/reports/view?id=${report.id}&action=print`, "_blank");
-      if (!printWindow) {
-        alert("Please allow popups to export PDF");
-      }
-    } catch (error) {
-      console.error("Error exporting PDF:", error);
-      alert("Error exporting report as PDF");
-    }
-  };
-
-  const exportAllReportsAsJSON = () => {
-    try {
-      const dataStr = JSON.stringify(filteredReports, null, 2);
-      const dataUri =
-        "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
-
-      const exportFileDefaultName = `all-reports-${new Date().toISOString().split("T")[0]}.json`;
-
-      const linkElement = document.createElement("a");
-      linkElement.setAttribute("href", dataUri);
-      linkElement.setAttribute("download", exportFileDefaultName);
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-    } catch (error) {
-      console.error("Error exporting all reports as JSON:", error);
-      alert("Error exporting all reports as JSON");
-    }
-  };
-
-  const exportAllReportsAsCSV = () => {
-    try {
-      const csvData = [
-        [
-          "Report ID",
-          "Date",
-          "Username",
-          "Income",
-          "Expenses",
-          "Deposit",
-          "Stamp",
-          "Balance",
-          "MGVCL",
-          "Online Payment",
-          "Net Amount",
-        ],
-        ...filteredReports.map((report) => [
-          report.id.slice(0, 8),
-          new Date(report.timestamp).toLocaleDateString(),
-          report.username || 'Unknown User',
-          report.totals?.income || 0,
-          report.totals?.expences || 0,
-          report.totals?.deposit || 0,
-          report.totals?.stamp || 0,
-          report.totals?.balance || 0,
-          report.totals?.mgvcl || 0,
-          report.totals?.onlinePayment || 0,
-          (report.totals?.income || 0) - (report.totals?.expences || 0),
-        ]),
-      ];
-
-      const csvContent = csvData
-        .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(","))
-        .join("\n");
-      const dataUri =
-        "data:text/csv;charset=utf-8,\uFEFF" + encodeURIComponent(csvContent);
-
-      const exportFileDefaultName = `all-reports-summary-${new Date().toISOString().split("T")[0]}.csv`;
-
-      const linkElement = document.createElement("a");
-      linkElement.setAttribute("href", dataUri);
-      linkElement.setAttribute("download", exportFileDefaultName);
-      document.body.appendChild(linkElement);
-      linkElement.click();
-      document.body.removeChild(linkElement);
-    } catch (error) {
-      console.error("Error exporting all reports as CSV:", error);
-      alert("Error exporting all reports as CSV");
-    }
-  };
-
-  const printReport = (report: Report) => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      const netAmount = (report.totals?.income || 0) - (report.totals?.expences || 0);
-      const reportDate = new Date(report.timestamp).toLocaleDateString('en-IN');
-      let cashAmount = 0;
-      if (typeof report.cash === 'number') {
-        cashAmount = report.cash;
-      } else if (typeof report.cash === 'object' && report.cash !== null) {
-        cashAmount = (report.cash as { amount: number }).amount || 0;
-      }
-
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>JANSEVA-2025 Daily Report - ${reportDate}</title>
-            <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              body { 
-                font-family: 'Arial', sans-serif; 
-                margin: 10px; 
-                color: #000; 
-                font-size: 11px;
-                line-height: 1.3;
-                background: white;
-              }
-              .header { 
-                text-align: center; 
-                margin-bottom: 20px;
-                border-bottom: 2px solid #000;
-                padding-bottom: 10px;
-              }
-              .header h1 { 
-                font-size: 18px; 
-                margin: 8px 0; 
-                font-weight: bold;
-                text-transform: uppercase;
-              }
-              .header p { 
-                margin: 3px 0; 
-                font-size: 12px;
-                font-weight: 500;
-              }
-              .report-info {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 15px;
-                padding: 5px 0;
-                border-bottom: 1px solid #ccc;
-              }
-              table { 
-                width: 100%; 
-                border-collapse: collapse; 
-                margin-bottom: 12px;
-                font-size: 10px;
-              }
-              th, td { 
-                border: 1px solid #000; 
-                padding: 3px 5px; 
-                text-align: left;
-                vertical-align: top;
-              }
-              th { 
-                background-color: #f5f5f5; 
-                font-weight: bold;
-                text-align: center;
-                font-size: 9px;
-                text-transform: uppercase;
-              }
-              .section-title { 
-                font-weight: bold; 
-                margin: 12px 0 5px 0;
-                text-align: center;
-                font-size: 12px;
-                background-color: #e9ecef;
-                padding: 5px;
-                border: 1px solid #000;
-                text-transform: uppercase;
-              }
-              .two-column { 
-                display: flex; 
-                gap: 15px; 
-              }
-              .column { 
-                flex: 1; 
-              }
-              .amount { 
-                text-align: right; 
-                font-weight: 500;
-              }
-              .total-row { 
-                font-weight: bold; 
-                background-color: #f9f9f9;
-                border-top: 2px solid #000;
-              }
-              .total-row td {
-                font-weight: bold;
-                font-size: 11px;
-              }
-              .summary-box {
-                border: 3px solid #000;
-                padding: 15px;
-                margin: 25px auto;
-                width: 350px;
-                text-align: center;
-                background-color: #f8f9fa;
-              }
-              .summary-box h3 {
-                margin: 0 0 12px 0;
-                font-size: 14px;
-                text-transform: uppercase;
-                border-bottom: 1px solid #000;
-                padding-bottom: 5px;
-              }
-              .summary-table {
-                width: 100%;
-                border-collapse: collapse;
-              }
-              .summary-table td {
-                border: 1px solid #000;
-                padding: 6px 10px;
-                font-weight: bold;
-                font-size: 11px;
-              }
-              .net-income-row {
-                background-color: #e3f2fd;
-                font-size: 12px;
-              }
-              .signature-section {
-                margin-top: 30px;
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-end;
-                page-break-inside: avoid;
-              }
-              .signature-box {
-                text-align: center;
-                width: 200px;
-              }
-              .signature-line {
-                border-bottom: 2px solid #000;
-                width: 180px;
-                height: 40px;
-                margin: 10px auto;
-              }
-              @media print { 
-                body { 
-                  margin: 5px; 
-                  -webkit-print-color-adjust: exact;
-                  color-adjust: exact;
-                }
-                .no-print { 
-                  display: none; 
-                }
-                .page-break {
-                  page-break-before: always;
-                }
-                .summary-box {
-                  page-break-inside: avoid;
-                }
-              }
-              @page {
-                margin: 0.5in;
-                size: A4;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>JANSEVA-2025 (DAILY REPORT)</h1>
-              <p>Complete Financial Summary</p>
-            </div>
-
-            <div class="report-info">
-              <div><strong>DATE:</strong> ${reportDate}</div>
-              <div><strong>USER:</strong> ${report.username || 'N/A'}</div>
-              <div><strong>REPORT ID:</strong> ${report.id.slice(0, 8)}...</div>
-            </div>
-
-            <div class="two-column">
-              <div class="column">
-                <div class="section-title">Deposit Amount (અપેલ રકમ)</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 10%">No</th>
-                      <th style="width: 65%">Particulars</th>
-                      <th style="width: 25%">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.deposit?.map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="2" style="text-align: center">TOTAL DEPOSIT</td>
-                      <td class="amount">₹${(report.totals?.deposit || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">Stamp Printing Report</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 8%">No</th>
-                      <th style="width: 40%">Particulars</th>
-                      <th style="width: 22%">Amount (₹)</th>
-                      <th style="width: 30%">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.stamp?.map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                        <td>${item.remark || '-'}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: center">TOTAL STAMP</td>
-                      <td class="amount">₹${(report.totals?.stamp || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">Income (Services)</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 10%">No</th>
-                      <th style="width: 65%">Service Name</th>
-                      <th style="width: 25%">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.income?.filter(item => item.amount > 0).map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No income recorded</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="2" style="text-align: center">TOTAL INCOME</td>
-                      <td class="amount">₹${(report.totals?.income || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="column">
-                <div class="section-title">Balance (બચત રકમ)</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 10%">No</th>
-                      <th style="width: 65%">Particulars</th>
-                      <th style="width: 25%">Amount (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.balance?.map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="2" style="text-align: center">TOTAL BALANCE</td>
-                      <td class="amount">₹${(report.totals?.balance || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">MGVCL Report</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 8%">No</th>
-                      <th style="width: 40%">Particulars</th>
-                      <th style="width: 22%">Amount (₹)</th>
-                      <th style="width: 30%">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.mgvcl?.map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                        <td>${item.remark || '-'}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: center">TOTAL MGVCL</td>
-                      <td class="amount">₹${(report.totals?.mgvcl || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">Online Payment</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 8%">No</th>
-                      <th style="width: 35%">Payment Method</th>
-                      <th style="width: 22%">Amount (₹)</th>
-                      <th style="width: 35%">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.onlinePayment?.filter(item => item.amount > 0 || item.remark).map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                        <td>${item.remark || '-'}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No online payments</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: center">TOTAL ONLINE</td>
-                      <td class="amount">₹${(report.totals?.onlinePayment || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-
-                <div class="section-title">Expenses</div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th style="width: 8%">No</th>
-                      <th style="width: 35%">Expense Type</th>
-                      <th style="width: 22%">Amount (₹)</th>
-                      <th style="width: 35%">Remark</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${report.expences?.filter(item => item.amount > 0 || item.name).map((item, index) => `
-                      <tr>
-                        <td style="text-align: center">${index + 1}</td>
-                        <td>${item.name || 'N/A'}</td>
-                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
-                        <td>${item.remark || '-'}</td>
-                      </tr>
-                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No expenses recorded</td></tr>'}
-                    <tr class="total-row">
-                      <td colspan="3" style="text-align: center">TOTAL EXPENSES</td>
-                      <td class="amount">₹${(report.totals?.expences || 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div class="summary-box">
-              <h3>Financial Summary</h3>
-              <table class="summary-table">
-                <tbody>
-                  <tr>
-                    <td style="text-align: left; width: 60%;">SERVICE INCOME:</td>
-                    <td style="text-align: right; width: 40%;">₹${(report.totals?.income || 0).toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="text-align: left;">ONLINE PAYMENT (G PAY):</td>
-                    <td style="text-align: right;">₹${(report.totals?.onlinePayment || 0).toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="text-align: left;">CASH AMOUNT:</td>
-                    <td style="text-align: right;">₹${cashAmount.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td style="text-align: left;">TOTAL EXPENSES:</td>
-                    <td style="text-align: right;">₹${(report.totals?.expences || 0).toFixed(2)}</td>
-                  </tr>
-                  <tr class="net-income-row">
-                    <td style="text-align: left; font-size: 13px;"><strong>NET INCOME:</strong></td>
-                    <td style="text-align: right; font-size: 13px;"><strong>₹${((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)}</strong></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <div class="signature-section">
-              <div class="signature-box">
-                <div><strong>PREPARED BY</strong></div>
-                <div class="signature-line"></div>
-                <div>${report.username || 'N/A'}</div>
-                <div style="font-size: 9px; margin-top: 5px;">${new Date().toLocaleString()}</div>
-              </div>
-              <div class="signature-box">
-                <div><strong>SUPERVISOR SIGN</strong></div>
-                <div class="signature-line"></div>
-                <div>Authorized Signature</div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-
-      // Auto print with a small delay to ensure content is loaded
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
-    } else {
-      alert('Please allow pop-ups to print the report');
-    }
-  };
-
-  const openModal = (report: Report, edit: boolean = false) => {
-    setSelectedReport(report);
-    setEditMode(edit);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setSelectedReport(null);
-    setShowModal(false);
-    setEditMode(false);
-  };
-
-  const handleSaveReport = async (updatedReport: Report) => {
-    try {
-      const response = await fetch(`/api/reports/${updatedReport.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer admin123', // Ensure auth token is used
-          'X-Page': 'admin',
-          'X-Username': 'admin'
-        },
-        body: JSON.stringify(updatedReport),
-      });
-
-      if (response.ok) {
-        // Update local state
-        setReports(reports.map(r => r.id === updatedReport.id ? updatedReport : r));
-        setSelectedReport(updatedReport);
-        setEditMode(false);
-        alert('Report updated successfully!');
-      } else {
-        alert('Failed to update report');
-      }
-    } catch (error) {
-      console.error('Error updating report:', error);
-      alert('An error occurred while updating the report');
-    }
-  };
-
-  const handlePasswordChange = (field: string, value: string) => {
-    setPasswordSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    // Clear status when user starts typing
-    if (passwordUpdateStatus.type) {
-      setPasswordUpdateStatus({ type: null, message: '' });
-    }
-  };
-
-  const updatePassword = async (page: string, newPassword: string) => {
-    if (!newPassword.trim()) {
-      setPasswordUpdateStatus({
-        type: 'error',
-        message: 'Password cannot be empty'
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/auth', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          password: newPassword,
-          page: page,
-          role: page === 'admin' ? 'admin' : 'user'
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        setPasswordUpdateStatus({
-          type: 'success',
-          message: `${page === 'admin' ? 'Admin' : 'Report'} password updated successfully!`
-        });
-        // Clear the input field
-        setPasswordSettings(prev => ({
-          ...prev,
-          [page === 'admin' ? 'newAdminPassword' : 'newReportPassword']: ''
-        }));
-      } else {
-        setPasswordUpdateStatus({
-          type: 'error',
-          message: result.message || 'Failed to update password'
-        });
-      }
-    } catch (error) {
-      console.error('Error updating password:', error);
-      setPasswordUpdateStatus({
-        type: 'error',
-        message: 'An error occurred while updating the password'
-      });
-    }
-  };
-
-  // Render login screen if not authenticated
+  // Password protected login screen
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="p-4 bg-blue-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-              <Settings className="h-10 w-10 text-blue-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Admin Access</h1>
-            <p className="text-gray-600">Please enter the admin password to access the dashboard</p>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Admin Password
-              </label>
-              <input
-                type="password"
-                value={passwordInput}
-                onChange={(e) => {
-                  setPasswordInput(e.target.value);
-                  setPasswordError(false); // Clear error on input change
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
-                className={`w-full px-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                  passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300'
-                }`}
-                placeholder="Enter admin password"
-              />
-              {passwordError && (
-                <div className="mt-2 flex items-center space-x-2 text-red-600">
-                  <AlertCircle className="h-4 w-4" />
-                  <p className="text-sm">Incorrect password. Please try again.</p>
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={handlePasswordSubmit}
-              disabled={passwordManagerLoading || !passwordInput.trim()} // Disable while loading or if input is empty
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {passwordManagerLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <CheckCircle className="h-5 w-5" />
-              )}
-              <span>Access Admin Panel</span>
-            </button>
-          </div>
-
-          <div className="mt-8 text-center">
-            <Link href="/report" className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center space-x-1">
-              <ArrowLeft className="h-4 w-4" />
-              <span>Back to Reports</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Render loading state if reports are being fetched initially
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-xl shadow-lg">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 text-lg">Loading admin dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Render error state if fetching failed
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-xl shadow-lg">
-          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 text-xl font-semibold mb-4">{error}</p>
-          <button
-            onClick={fetchReports}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg flex items-center space-x-2 mx-auto"
-          >
-            <RefreshCw className="h-4 w-4" />
-            <span>Retry</span>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Render the main AdminPage content
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Enhanced Header */}
-      <div className="bg-white shadow-lg border-b">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/report"
-                className="text-gray-600 hover:text-gray-800 transition-colors"
-              >
-                <ArrowLeft className="h-6 w-6" />
-              </Link>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  Admin Dashboard
-                </h1>
-                <p className="text-gray-600">
-                  Comprehensive reports management and analytics
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </button>
-
-              {/* Export All Dropdown */}
-              <div className="relative group">
-                <button className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center space-x-2">
-                  <Download className="h-4 w-4" />
-                  <span>Export All</span>
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="py-1">
-                    <button
-                      onClick={exportAllReportsAsJSON}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <FileText className="h-4 w-4" />
-                      <span>Export as JSON</span>
-                    </button>
-                    <button
-                      onClick={exportAllReportsAsCSV}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                    >
-                      <BarChart3 className="h-4 w-4" />
-                      <span>Export as Excel/CSV</span>
-                    </button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        <div className="flex items-center justify-center min-h-screen px-4">
+          <div className="w-full max-w-md">
+            <div className="bg-white shadow-2xl rounded-2xl border border-gray-100">
+              <div className="p-8">
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                    <Settings className="h-8 w-8 text-blue-600" />
                   </div>
+                  <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
+                  <p className="text-gray-600 mt-2">
+                    Enter admin password to access the control panel
+                  </p>
+                </div>
+
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Admin Password
+                    </label>
+                    <input
+                      type="password"
+                      value={passwordInput}
+                      onChange={(e) => {
+                        setPasswordInput(e.target.value);
+                        setPasswordError(false);
+                      }}
+                      onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                        passwordError ? 'border-red-500 bg-red-50' : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      placeholder="Enter admin password"
+                      data-testid="input-admin-password"
+                    />
+                    {passwordError && (
+                      <div className="flex items-center space-x-2 mt-3 text-red-600">
+                        <AlertCircle className="h-4 w-4" />
+                        <p className="text-sm">Incorrect password. Please try again.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={handlePasswordSubmit}
+                    disabled={passwordManagerLoading || !passwordInput.trim()}
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-4 rounded-xl transition-all transform hover:scale-[1.02] disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                    data-testid="button-admin-login"
+                  >
+                    {passwordManagerLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Settings className="h-4 w-4" />
+                        <span>Access Admin Panel</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="mt-8 text-center">
+                  <Link href="/" className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors flex items-center justify-center space-x-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Back to Home</span>
+                  </Link>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-              <Link
-                href="/report"
-                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2"
+  // Main admin dashboard
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-4">
+              <Settings className="h-8 w-8 text-blue-600" />
+              <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => fetchReports()}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
               >
-                <FileText className="h-4 w-4" />
-                <span>New Report</span>
-              </Link>
+                <RefreshCw className="h-4 w-4" />
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsAuthenticated(false);
+                  setPasswordInput('');
+                  setPasswordError(false);
+                  setReports([]);
+                  setFilteredReports([]);
+                }}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center space-x-2"
+                data-testid="button-admin-logout"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Period Selector */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Analytics Period
-            </h2>
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-500">
-                {stats.totalReports} reports in period
-              </span>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            {(["today", "week", "month", "year"] as const).map((period) => (
-              <button
-                key={period}
-                onClick={() => setSelectedPeriod(period)}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedPeriod === period
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {period.charAt(0).toUpperCase() + period.slice(1)}
-              </button>
-            ))}
+        <div className="mb-6">
+          <div className="flex items-center space-x-2 bg-white p-4 rounded-lg shadow">
+            <Calendar className="h-5 w-5 text-gray-500" />
+            <span className="text-sm font-medium text-gray-700">Time Period:</span>
+            <select
+              value={selectedPeriod}
+              onChange={(e) => setSelectedPeriod(e.target.value as typeof selectedPeriod)}
+              className="ml-2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="today">Today</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
           </div>
         </div>
 
-        {/* Enhanced Stats Cards */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Total Reports
-                </h3>
-                <p className="text-3xl font-bold text-blue-600">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Reports</p>
+                <p className="text-2xl font-bold text-gray-900" data-testid="stat-total-reports">
                   {stats.totalReports}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  This {selectedPeriod}
-                </p>
               </div>
-              <FileText className="h-12 w-12 text-blue-500 opacity-20" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Total Income (Services Only)
-                </h3>
-                <p className="text-3xl font-bold text-green-600">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                  <DollarSign className="h-6 w-6 text-green-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Income</p>
+                <p className="text-2xl font-bold text-green-700" data-testid="stat-total-income">
                   ₹{stats.totalIncome.toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  Avg: ₹{stats.avgDailyIncome.toFixed(2)}/day
-                </p>
               </div>
-              <DollarSign className="h-12 w-12 text-green-500 opacity-20" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-red-500 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Total Expenses
-                </h3>
-                <p className="text-3xl font-bold text-red-600">
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="h-6 w-6 text-red-600" />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
+                <p className="text-2xl font-bold text-red-700" data-testid="stat-total-expenses">
                   ₹{stats.totalExpenses.toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {(
-                    (stats.totalExpenses / Math.max(1, stats.totalIncome)) *
-                    100
-                  ).toFixed(1)}
-                  % of income
-                </p>
               </div>
-              <TrendingUp className="h-12 w-12 text-red-500 opacity-20" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500 hover:shadow-xl transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  Net Profit
-                </h3>
-                <p
-                  className={`text-3xl font-bold ${stats.netProfit >= 0 ? "text-green-600" : "text-red-600"}`}
-                >
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
+                  stats.netProfit >= 0 ? 'bg-green-100' : 'bg-red-100'
+                }`}>
+                  <BarChart3 className={`h-6 w-6 ${
+                    stats.netProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`} />
+                </div>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Net Profit</p>
+                <p className={`text-2xl font-bold ${
+                  stats.netProfit >= 0 ? 'text-green-700' : 'text-red-700'
+                }`} data-testid="stat-net-profit">
                   ₹{stats.netProfit.toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {stats.netProfit >= 0 ? "+" : ""}
-                  {(
-                    (stats.netProfit / Math.max(1, stats.totalIncome)) *
-                    100
-                  ).toFixed(1)}
-                  % margin
-                </p>
-              </div>
-              <BarChart3 className="h-12 w-12 text-purple-500 opacity-20" />
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <Activity className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">Deposit Amount</h4>
-                <p className="text-2xl font-bold text-blue-600">
-                  ₹{stats.totalDeposit.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-teal-100 rounded-lg">
-                <PieChart className="h-6 w-6 text-teal-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">Online Payment</h4>
-                <p className="text-2xl font-bold text-teal-600">
-                  ₹{stats.totalOnlinePayment.toFixed(2)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <div className="flex items-center space-x-3">
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <Clock className="h-6 w-6 text-yellow-600" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-800">Report Status</h4>
-                <p className="text-2xl font-bold text-yellow-600">
-                  {stats.periodReports.length > 0 ? "Active" : "No Data"}
-                </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Password Management Section */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        {/* Filters and Search */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center space-x-2">
-              <Settings className="h-5 w-5" />
-              <span>Password Management</span>
-            </h2>
-            <button
-              onClick={() => setShowPasswordManager(!showPasswordManager)}
-              className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg transition-colors"
-            >
-              <span>{showPasswordManager ? 'Hide' : 'Manage'} Passwords</span>
-              {showPasswordManager ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-          </div>
-
-          {showPasswordManager && (
-            <div className="space-y-6">
-              {passwordUpdateStatus.type && (
-                <div
-                  className={`p-4 rounded-lg flex items-center space-x-2 ${
-                    passwordUpdateStatus.type === 'success'
-                      ? 'bg-green-50 border border-green-200 text-green-800'
-                      : 'bg-red-50 border border-red-200 text-red-800'
-                  }`}
-                >
-                  {passwordUpdateStatus.type === 'success' ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <AlertCircle className="h-5 w-5" />
-                  )}
-                  <span>{passwordUpdateStatus.message}</span>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Report Page Password */}
-                <div className="bg-blue-50 p-6 rounded-lg border border-blue-200">
-                  <h3 className="font-semibold text-blue-800 mb-4 flex items-center space-x-2">
-                    <FileText className="h-5 w-5" />
-                    <span>Report Page Password</span>
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-blue-700 mb-2">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={passwordSettings.newReportPassword}
-                        onChange={(e) => handlePasswordChange('newReportPassword', e.target.value)}
-                        placeholder="Enter new password for report page"
-                        className="w-full px-4 py-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    </div>
-                    <button
-                      onClick={() => updatePassword('report', passwordSettings.newReportPassword)}
-                      disabled={!passwordSettings.newReportPassword.trim()}
-                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Update Report Password</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Admin Page Password */}
-                <div className="bg-purple-50 p-6 rounded-lg border border-purple-200">
-                  <h3 className="font-semibold text-purple-800 mb-4 flex items-center space-x-2">
-                    <Settings className="h-5 w-5" />
-                    <span>Admin Page Password</span>
-                  </h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-purple-700 mb-2">
-                        New Password
-                      </label>
-                      <input
-                        type="password"
-                        value={passwordSettings.newAdminPassword}
-                        onChange={(e) => handlePasswordChange('newAdminPassword', e.target.value)}
-                        placeholder="Enter new password for admin page"
-                        className="w-full px-4 py-3 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      />
-                    </div>
-                    <button
-                      onClick={() => updatePassword('admin', passwordSettings.newAdminPassword)}
-                      disabled={!passwordSettings.newAdminPassword.trim()}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                      <span>Update Admin Password</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Security Notice */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium text-yellow-800">Security Notice</h4>
-                    <p className="text-yellow-700 text-sm mt-1">
-                      • Choose strong passwords with a mix of letters, numbers, and symbols<br />
-                      • Avoid using common words or personal information<br />
-                      • Keep your passwords confidential and change them regularly<br />
-                      • Password changes take effect immediately for all users
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Enhanced Filters */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Advanced Filters & Search
-            </h2>
+            <h3 className="text-lg font-semibold text-gray-900">Filter Reports</h3>
             <button
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
+              className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 font-medium"
             >
-              <span>Advanced</span>
+              <Filter className="h-4 w-4" />
+              <span>Advanced Filters</span>
               {showAdvancedFilters ? (
                 <ChevronUp className="h-4 w-4" />
               ) : (
@@ -1900,369 +939,241 @@ const AdminPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-            <div className="relative">
-              <Search className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search reports..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search
+              </label>
+              <div className="relative">
+                <Search className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Search reports..."
+                />
+              </div>
             </div>
 
-            <div className="relative">
-              <Users className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
               <input
                 type="text"
-                placeholder="Filter by username..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={usernameFilter}
                 onChange={(e) => setUsernameFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Filter by username..."
               />
             </div>
 
-            <div className="relative">
-              <Calendar className="h-5 w-5 absolute left-3 top-3 text-gray-400" />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date
+              </label>
               <input
                 type="date"
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-            </div>              
-            <select
-              value={sortBy}
-              onChange={(e) =>
-                setSortBy(e.target.value as "date" | "income" | "expenses")
-              }
-              className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="date">Sort by Date</option>
-              <option value="income">Sort by Income</option>
-              <option value="expenses">Sort by Expenses</option>
-            </select>
-
-            <div className="flex space-x-2">
-              <button
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center space-x-2"
-              >
-                <span>{sortOrder === "asc" ? "↑" : "↓"}</span>
-                <span>{sortOrder === "asc" ? "Asc" : "Desc"}</span>
-              </button>
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setUsernameFilter("");
-                  setDateFilter("");
-                  setMinIncome("");
-                  setMaxIncome("");
-                  setStartDate("");
-                  setEndDate("");
-                  setReportType("");
-                  setSortBy("date");
-                  setSortOrder("desc");
-                }}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg flex items-center justify-center"
-                title="Clear All Filters"
-                >
-                <Filter className="h-4 w-4" />
-              </button>
             </div>
           </div>
 
           {showAdvancedFilters && (
-            <div className="border-t pt-4 mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Income Range (₹)
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={minIncome}
-                      onChange={(e) => setMinIncome(e.target.value)}
-                      className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={maxIncome}
-                      onChange={(e) => setMaxIncome(e.target.value)}
-                      className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Date Range
-                  </label>
-                  <div className="flex space-x-2">
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      title="Start Date"
-                    />
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      title="End Date"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Report Type
-                  </label>
-                  <select 
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value)}
-                    className="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">All Types</option>
-                    <option value="profit">Profitable</option>
-                    <option value="loss">Loss Making</option>
-                    <option value="high-income">High Income (₹5000)</option>
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Min Income
+                </label>
+                <input
+                  type="number"
+                  value={minIncome}
+                  onChange={(e) => setMinIncome(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Min income..."
+                />
               </div>
-              <div className="mt-4 flex justify-between items-center">
-                <p className="text-sm text-gray-600">
-                  Active filters: {[searchTerm, usernameFilter, dateFilter, minIncome, maxIncome, startDate, endDate, reportType].filter(Boolean).length}
-                </p>
-                <button
-                  onClick={() => {
-                    setMinIncome("");
-                    setMaxIncome("");
-                    setStartDate("");
-                    setEndDate("");
-                    setReportType("");
-                  }}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Clear Advanced Filters
-                </button>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Max Income
+                </label>
+                <input
+                  type="number"
+                  value={maxIncome}
+                  onChange={(e) => setMaxIncome(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Max income..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
             </div>
           )}
         </div>
 
-        {/* Enhanced Reports Table */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Reports Management
-              </h2>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">
-                  Showing {filteredReports.length} of {reports.length} reports
-                </span>
-                <button
-                  onClick={fetchReports}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Refresh"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </button>
-              </div>
+        {/* Sort Controls */}
+        <div className="bg-white rounded-xl shadow-sm p-4 mb-8 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="date">Date</option>
+                <option value="income">Income</option>
+                <option value="expenses">Expenses</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="flex items-center space-x-1 px-3 py-1 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                <span>{sortOrder === "asc" ? "Ascending" : "Descending"}</span>
+                {sortOrder === "asc" ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+            <div className="text-sm text-gray-600">
+              Showing {filteredReports.length} of {reports.length} reports
             </div>
           </div>
+        </div>
 
-          {filteredReports.length === 0 ? (
-            <div className="text-center py-16">
-              <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 text-xl mb-2">No reports found</p>
-              <p className="text-gray-400 mb-6">
-                {reports.length === 0
-                  ? "No reports have been created yet"
-                  : "Try adjusting your filters"}
-              </p>
-              <Link
-                href="/report"
-                className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg"
-              >
-                <FileText className="h-4 w-4" />
-                <span>Create First Report</span>
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+        {/* Reports Table */}
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">Reports Management</h2>
+            <p className="text-sm text-gray-600">Manage and edit reports from the system</p>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Date
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Username
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Income
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Expenses
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Net Amount
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {loading ? (
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Report Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created By
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Financial Summary
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Net Performance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Profit Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-blue-600" />
+                      <p className="text-gray-500">Loading reports...</p>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredReports.map((report) => {
-                    const netAmount =
-                      (report.totals?.income || 0) -
-                      (report.totals?.expences || 0);
-                    const profitMargin =
-                      (netAmount / Math.max(1, report.totals?.income || 1)) *
-                      100;
-
+                ) : error ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <AlertCircle className="h-6 w-6 mx-auto mb-2 text-red-600" />
+                      <p className="text-red-600">{error}</p>
+                    </td>
+                  </tr>
+                ) : filteredReports.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      No reports found matching your criteria
+                    </td>
+                  </tr>
+                ) : (
+                  filteredReports.map((report: any, index: number) => {
+                    const netAmount = (report.totals?.income || 0) - (report.totals?.expences || 0);
                     return (
-                      <tr
-                        key={report.id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              #{report.id.slice(0, 8)}...
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {formatDate(report.timestamp)}
-                            </div>
-                          </div>
+                      <tr key={report.id} data-testid={`row-report-${index}`} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {formatDate(report.timestamp)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm">
-                            <div className="font-medium text-gray-900">
-                              {report.username || 'Unknown User'}
-                            </div>
-                            <div className="text-gray-500 text-xs">
-                              User
-                            </div>
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {report.username || 'Unknown'}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm">
-                            <div className="font-medium text-green-600">
-                              Income: ₹{(report.totals?.income || 0).toFixed(2)}
-                            </div>
-                            <div className="text-red-600">
-                              Expenses: ₹
-                              {(report.totals?.expences || 0).toFixed(2)}
-                            </div>
-                            <div className="text-gray-500">
-                              Online: ₹
-                              {(report.totals?.onlinePayment || 0).toFixed(2)}
-                            </div>
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-green-700 font-medium">
+                          ₹{(report.totals?.income || 0).toFixed(2)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="text-sm">
-                            <div
-                              className={`font-medium ${netAmount >= 0 ? "text-green-600" : "text-red-600"}`}
-                            >
-                              NET INCOME: ₹{netAmount.toFixed(2)}
-                            </div>
-                            <div className="text-gray-500">
-                              Margin: {profitMargin.toFixed(1)}%
-                            </div>
-                          </div>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-700 font-medium">
+                          ₹{(report.totals?.expences || 0).toFixed(2)}
                         </td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              netAmount >= 0
-                                ? "bg-green-100 text-green-800"
-                                : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {netAmount >= 0 ? (
-                              <>
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Profitable
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Loss
-                              </>
-                            )}
-                          </span>
+                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                          netAmount >= 0 ? 'text-green-700' : 'text-red-700'
+                        }`}>
+                          ₹{netAmount.toFixed(2)}
                         </td>
-                        <td className="px-6 py-4">
-                          <div className="flex space-x-2">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center space-x-2">
                             <button
-                              onClick={() => openModal(report, false)}
-                              className="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors"
-                              title="View Report"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => printReport(report)}
-                              className="text-purple-600 hover:text-purple-900 p-2 rounded-lg hover:bg-purple-50 transition-colors"
-                              title="Print Report"
-                            >
-                              <Printer className="h-4 w-4" />
-                            </button>
-
-                            {/* Export Dropdown */}
-                            <div className="relative group">
-                              <button
-                                className="text-green-600 hover:text-green-900 p-2 rounded-lg hover:bg-green-50 transition-colors flex items-center"
-                                title="Export Report"
-                              >
-                                <Download className="h-4 w-4" />
-                              </button>
-                              <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                                <div className="py-1">
-                                  <button
-                                    onClick={() => exportReportAsJSON(report)}
-                                    className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
-                                  >
-                                    JSON
-                                  </button>
-                                  <button
-                                    onClick={() => exportReportAsCSV(report)}
-                                    className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
-                                  >
-                                    Excel/CSV
-                                  </button>
-                                  <button
-                                    onClick={() => exportReportAsPDF(report)}
-                                    className="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100"
-                                  >
-                                    PDF
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-
-                            <button
-                              onClick={() => openModal(report, true)}
-                              className="text-yellow-600 hover:text-yellow-900 p-2 rounded-lg hover:bg-yellow-50 transition-colors"
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setEditMode(true);
+                                setShowModal(true);
+                              }}
+                              className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded"
                               title="Edit Report"
+                              data-testid={`button-edit-report-${index}`}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                             <button
+                              onClick={() => {
+                                setSelectedReport(report);
+                                setEditMode(false);
+                                setShowModal(true);
+                              }}
+                              className="text-green-600 hover:text-green-900 transition-colors p-1 rounded"
+                              title="View Report"
+                              data-testid={`button-view-report-${index}`}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => deleteReport(report.id)}
-                              className="text-red-600 hover:text-red-900 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              className="text-red-600 hover:text-red-900 transition-colors p-1 rounded"
                               title="Delete Report"
+                              data-testid={`button-delete-report-${index}`}
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -2270,237 +1181,166 @@ const AdminPage: React.FC = () => {
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link 
+            href="/reports/view" 
+            className="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] shadow-sm"
+            data-testid="link-view-reports"
+          >
+            <Eye className="h-8 w-8 mx-auto mb-2" />
+            <div className="text-lg font-semibold">View Reports</div>
+            <div className="text-sm opacity-90">Access report dashboard</div>
+          </Link>
+          
+          <Link 
+            href="/debug" 
+            className="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] shadow-sm"
+            data-testid="link-debug-tools"
+          >
+            <Activity className="h-8 w-8 mx-auto mb-2" />
+            <div className="text-lg font-semibold">Debug Tools</div>
+            <div className="text-sm opacity-90">System diagnostics</div>
+          </Link>
+          
+          <div className="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] cursor-pointer shadow-sm">
+            <Settings className="h-8 w-8 mx-auto mb-2" />
+            <div className="text-lg font-semibold">Settings</div>
+            <div className="text-sm opacity-90">System configuration</div>
+          </div>
+          
+          <div className="bg-orange-600 hover:bg-orange-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] cursor-pointer shadow-sm">
+            <BarChart3 className="h-8 w-8 mx-auto mb-2" />
+            <div className="text-lg font-semibold">Analytics</div>
+            <div className="text-sm opacity-90">Usage statistics</div>
+          </div>
         </div>
       </div>
 
-      {/* Enhanced Modal */}
+      {/* Modal for Edit/View Report */}
       {showModal && selectedReport && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-              <div>
-                <h3 className="text-2xl font-semibold text-gray-800">
-                  {editMode ? "Edit Report" : "Report Details"}
-                </h3>
-                <p className="text-gray-600">ID: {selectedReport.id}</p>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => printReport(selectedReport)}
-                  className="p-2 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg"
-                  title="Print Report"
-                >
-                  <Printer className="h-5 w-5" />
-                </button>
-
-                {/* Export Dropdown in Modal */}
-                <div className="relative group">
-                  <button
-                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-lg flex items-center"
-                    title="Export Report"
-                  >
-                    <Download className="h-5 w-5" />
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </button>
-                  <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <div className="py-1">
-                      <button
-                        onClick={() => exportReportAsJSON(selectedReport)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>JSON</span>
-                      </button>
-                      <button
-                        onClick={() => exportReportAsCSV(selectedReport)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                      >
-                        <BarChart3 className="h-4 w-4" />
-                        <span>Excel/CSV</span>
-                      </button>
-                      <button
-                        onClick={() => exportReportAsPDF(selectedReport)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center space-x-2"
-                      >
-                        <FileText className="h-4 w-4" />
-                        <span>PDF</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={closeModal}
-                  className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg"
-                >
-                  <span className="sr-only">Close</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
+          <div className="bg-white rounded-xl max-w-6xl max-h-[90vh] w-full overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editMode ? 'Edit Report' : 'View Report'} - {selectedReport.id.slice(0, 8)}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowModal(false);
+                  setSelectedReport(null);
+                  setEditMode(false);
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Report Date</p>
-                  <p className="font-medium text-lg">
-                    {formatDate(selectedReport.timestamp)}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Created By</p>
-                  <p className="font-medium text-lg">
-                    {selectedReport.username || 'Unknown User'}
-                  </p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-1">Report Status</p>
-                  <p className="font-medium text-lg">
-                    {(selectedReport.totals?.income || 0) -
-                      (selectedReport.totals?.expences || 0) >=
-                    0
-                      ? "✅ Profitable"
-                      : "❌ Loss Making"}
-                  </p>
-                </div>
-              </div>
-
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-600 font-medium">
-                    Total Income
-                  </p>
-                  <p className="text-3xl font-bold text-green-700">
-                    ₹{(selectedReport.totals?.income || 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 rounded-lg border border-red-200">
-                  <p className="text-sm text-red-600 font-medium">
-                    Total Expenses
-                  </p>
-                  <p className="text-3xl font-bold text-red-700">
-                    ₹{(selectedReport.totals?.expences || 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-gradient-to-r from-teal-50 to-teal-100 p-4 rounded-lg border border-teal-200">
-                  <p className="text-sm text-teal-600 font-medium">
-                    Online Payment Total
-                  </p>
-                  <p className="text-3xl font-bold text-teal-700">
-                    ₹{(selectedReport.totals?.onlinePayment || 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-600 font-medium">
-                    NET INCOME (Income - Expenses)
-                  </p>
-                  <p className="text-3xl font-bold text-blue-700">
-                    ₹
-                    {(
-                      (selectedReport.totals?.income || 0) -
-                      (selectedReport.totals?.expences || 0)
-                    ).toFixed(2)}
-                  </p>
-                </div>
-              </div>
-
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               {editMode ? (
-                <EditReportForm 
+                <EditReportForm
                   report={selectedReport}
-                  onSave={handleSaveReport}
-                  onCancel={() => setEditMode(false)}
+                  onSave={(updatedReport) => {
+                    // Update the report in the reports array
+                    const updatedReports = reports.map(report => 
+                      report.id === updatedReport.id ? updatedReport : report
+                    );
+                    setReports(updatedReports);
+                    setShowModal(false);
+                    setSelectedReport(null);
+                    setEditMode(false);
+                    alert('Report updated successfully!');
+                  }}
+                  onCancel={() => {
+                    setShowModal(false);
+                    setSelectedReport(null);
+                    setEditMode(false);
+                  }}
                 />
               ) : (
                 <div className="space-y-6">
-                  <h4 className="font-semibold text-gray-800 text-xl border-b pb-2">
-                    Detailed Breakdown
-                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <p className="font-medium text-blue-800 mb-2">
-                          💰 Deposit Amount
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-gray-800 mb-2">Report Information</h4>
+                      <p><strong>Report ID:</strong> {selectedReport.id}</p>
+                      <p><strong>Username:</strong> {selectedReport.username || 'Unknown'}</p>
+                      <p><strong>Date:</strong> {formatDate(selectedReport.timestamp)}</p>
+                      {selectedReport.lastModified && (
+                        <p><strong>Last Modified:</strong> {formatDate(selectedReport.lastModified)}</p>
+                      )}
+                    </div>
+                    
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-800 mb-2">Financial Summary</h4>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex justify-between">
+                          <span>Income:</span>
+                          <span className="font-semibold text-green-700">₹{(selectedReport.totals?.income || 0).toFixed(2)}</span>
                         </p>
-                        <p className="text-2xl font-bold text-blue-600">
-                          ₹{(selectedReport.totals?.deposit || 0).toFixed(2)}
+                        <p className="flex justify-between">
+                          <span>Expenses:</span>
+                          <span className="font-semibold text-red-700">₹{(selectedReport.totals?.expences || 0).toFixed(2)}</span>
                         </p>
-                      </div>
-                      <div className="bg-purple-50 p-4 rounded-lg">
-                        <p className="font-medium text-purple-800 mb-2">
-                          📊 Stamp Revenue
-                        </p>
-                        <p className="text-2xl font-bold text-purple-600">
-                          ₹{(selectedReport.totals?.stamp || 0).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="bg-yellow-50 p-4 rounded-lg">
-                        <p className="font-medium text-yellow-800 mb-2">
-                          💳 Balance Amount
-                        </p>
-                        <p className="text-2xl font-bold text-yellow-600">
-                          ₹{(selectedReport.totals?.balance || 0).toFixed(2)}
-                        </p>
+                        <div className="border-t pt-1 mt-1">
+                          <p className="flex justify-between font-semibold">
+                            <span>Net Amount:</span>
+                            <span className={
+                              ((selectedReport.totals?.income || 0) - (selectedReport.totals?.expences || 0)) >= 0 
+                                ? 'text-green-700' 
+                                : 'text-red-700'
+                            }>
+                              ₹{((selectedReport.totals?.income || 0) - (selectedReport.totals?.expences || 0)).toFixed(2)}
+                            </span>
+                          </p>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <div className="bg-indigo-50 p-4 rounded-lg">
-                        <p className="font-medium text-indigo-800 mb-2">
-                          ⚡ MGVCL Revenue
-                        </p>
-                        <p className="text-2xl font-bold text-indigo-600">
-                          ₹{(selectedReport.totals?.mgvcl || 0).toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="bg-teal-50 p-4 rounded-lg">
-                        <p className="font-medium text-teal-800 mb-2">
-                          💻 Online Payment
-                        </p>
-                        <p className="text-2xl font-bold text-teal-600">
-                          ₹
-                          {(selectedReport.totals?.onlinePayment || 0).toFixed(
-                            2,
-                          )}
-                        </p>
-                      </div>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="font-medium text-gray-800 mb-2">
-                          📈 Performance Score
-                        </p>
-                        <p className="text-2xl font-bold text-gray-600">
-                          {Math.max(
-                            0,
-                            Math.min(
-                              100,
-                              ((selectedReport.totals?.income || 0) /
-                                Math.max(
-                                  1,
-                                  selectedReport.totals?.expences || 1,
-                                )) *
-                                20,
-                            ),
-                          ).toFixed(0)}
-                          /100
-                        </p>
+                  </div>
+
+                  {selectedReport.auditLog && selectedReport.auditLog.length > 0 && (
+                    <div className="bg-yellow-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-yellow-800 mb-2">Audit Trail</h4>
+                      <div className="space-y-2 text-sm">
+                        {selectedReport.auditLog.map((log, index) => (
+                          <div key={index} className="flex items-center space-x-2">
+                            <Clock className="h-3 w-3 text-yellow-600" />
+                            <span className="text-yellow-800">
+                              {formatDate(log.timestamp)} - {log.action} by {log.user}: {log.changes}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
+                  )}
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => setEditMode(true)}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2"
+                    >
+                      <Edit className="h-4 w-4" />
+                      <span>Edit Report</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowModal(false);
+                        setSelectedReport(null);
+                        setEditMode(false);
+                      }}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    >
+                      Close
+                    </button>
                   </div>
                 </div>
               )}
