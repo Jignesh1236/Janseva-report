@@ -3,7 +3,7 @@ import { supabaseAdmin } from './supabase';
 
 export interface AuthResult {
   isAuthenticated: boolean;
-  role?: 'admin' | 'user';
+  role?: 'user';
   username?: string;
   error?: string;
 }
@@ -15,14 +15,14 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
     const authHeader = request.headers.get('authorization');
     const usernameHeader = request.headers.get('x-username');
     const pageHeader = request.headers.get('x-page');
-    
+
     if (!authHeader || !pageHeader) {
       return { isAuthenticated: false, error: 'Missing authentication headers' };
     }
 
     // Extract password from Authorization header (format: "Bearer password")
     const password = authHeader.replace('Bearer ', '');
-    
+
     // Verify against userdata table
     const { data, error } = await supabaseAdmin
       .from('userdata')
@@ -35,10 +35,15 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
       return { isAuthenticated: false, error: 'Invalid credentials' };
     }
 
+    // Allow both report and admin page access
+    if (data.page !== 'report' && data.page !== 'admin') {
+      return { isAuthenticated: false, error: 'Access denied' };
+    }
+
     return {
       isAuthenticated: true,
-      role: data.role as 'admin' | 'user',
-      username: usernameHeader || undefined
+      role: 'user',
+      username: usernameHeader || 'unknown' // Prioritize username from headers
     };
   } catch (error) {
     return { isAuthenticated: false, error: 'Authentication verification failed' };
@@ -46,16 +51,7 @@ export async function verifyAuth(request: NextRequest): Promise<AuthResult> {
 }
 
 // Helper function to check if user can access specific data
-export function canAccessReport(report: any, userRole: 'admin' | 'user', username?: string): boolean {
-  // Admin can access all reports
-  if (userRole === 'admin') {
-    return true;
-  }
-  
-  // Regular users can only access their own reports
-  if (userRole === 'user' && username && report.username) {
-    return report.username.toLowerCase() === username.toLowerCase();
-  }
-  
-  return false;
+export function canAccessReport(report: any, userRole: 'user', username?: string): boolean {
+  // All authenticated users can access all reports
+  return userRole === 'user';
 }
