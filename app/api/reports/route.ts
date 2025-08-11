@@ -119,8 +119,13 @@ export async function GET(request: NextRequest) {
 
     console.log(`Fetched ${data?.length || 0} reports from database`);
 
-    // Filter data based on user permissions
-    const filteredData = (data || []).filter(report => canAccessReport(report, authResult.role!, authResult.username!));
+    // Filter data based on user permissions and username
+    let filteredData = data || [];
+    
+    // For regular users, only show their own reports
+    if (authResult.role === 'user' && authResult.username !== 'admin') {
+      filteredData = data?.filter(report => report.username === authResult.username) || [];
+    }
 
     console.log(`Filtered to ${filteredData.length} reports for user role: ${authResult.role}, username: ${authResult.username}`);
 
