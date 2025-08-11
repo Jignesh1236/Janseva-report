@@ -71,13 +71,15 @@ const ViewReportsPage: React.FC = () => {
       const result = await response.json();
 
       if (result.success) {
-        setCurrentUsername(usernameInput.trim());
+        setCurrentUsername(result.username || usernameInput.trim());
         setIsAuthenticated(true);
         setLoginError(false);
         setAuthToken(passwordInput); // Store for API calls
         setLoading(true);
+        console.log('Login successful, username:', result.username || usernameInput.trim());
       } else {
         setLoginError(true);
+        console.log('Login failed:', result.message);
       }
     } catch (error) {
       console.error('Authentication error:', error);
@@ -99,19 +101,16 @@ const ViewReportsPage: React.FC = () => {
   const filterReports = () => {
     let filtered = reports;
 
-    // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(
-        (report) =>
-          report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          new Date(report.timestamp).toLocaleDateString().includes(searchTerm)
+      filtered = filtered.filter((report) =>
+        report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        new Date(report.timestamp).toLocaleDateString().includes(searchTerm)
       );
     }
 
-    // Date filter
     if (dateFilter) {
       filtered = filtered.filter((report) => {
-        const reportDate = new Date(report.timestamp).toISOString().split("T")[0];
+        const reportDate = new Date(report.timestamp).toISOString().split('T')[0];
         return reportDate === dateFilter;
       });
     }
@@ -121,6 +120,12 @@ const ViewReportsPage: React.FC = () => {
 
   const fetchUserReports = async () => {
     try {
+      console.log('Fetching reports with:', {
+        authToken: authToken ? 'present' : 'missing',
+        currentUsername,
+        page: 'report'
+      });
+
       const response = await fetch("/api/reports", {
         headers: {
           'Authorization': `Bearer ${authToken}`,
@@ -128,20 +133,27 @@ const ViewReportsPage: React.FC = () => {
           'x-page': 'report'
         }
       });
+
+      console.log('Reports API response status:', response.status);
       if (response.ok) {
         const data = await response.json();
+        console.log('Reports fetched successfully:', data.length);
         // Data is already filtered by the secure API
         setReports(data);
         setFilteredReports(data);
       } else if (response.status === 401) {
+        const errorText = await response.text();
+        console.log('401 Authentication error:', errorText);
         setError("Authentication required. Please login again.");
         handleLogout();
       } else {
-        setError("Failed to fetch reports");
+        const errorText = await response.text();
+        console.log('API error response:', response.status, errorText);
+        setError("Failed to fetch reports: " + errorText);
       }
     } catch (err) {
-      setError("Error fetching reports");
-      console.error("Error:", err);
+      console.error("Fetch reports error:", err);
+      setError("Error fetching reports: " + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
