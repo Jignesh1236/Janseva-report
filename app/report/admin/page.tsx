@@ -28,7 +28,9 @@ import {
   Clock,
   PieChart,
   Activity,
-  Loader2
+  Loader2,
+  Lock,
+  X
 } from "lucide-react";
 
 interface Report {
@@ -437,6 +439,11 @@ const AdminPage: React.FC = () => {
   const [passwordError, setPasswordError] = useState(false);
   const [passwordManagerLoading, setPasswordManagerLoading] = useState(false);
   const [authToken, setAuthToken] = useState('');
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -604,6 +611,583 @@ const AdminPage: React.FC = () => {
 
     setFilteredReports(filtered);
   };
+
+  const calculateNetAmount = (report: Report) => {
+    return (report.totals?.income || 0) - (report.totals?.expences || 0);
+  };
+
+  const printReport = (report: Report) => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const netAmount = calculateNetAmount(report);
+      const reportDate = new Date(report.timestamp).toLocaleDateString('en-IN');
+      const cashAmount = typeof report.cash === 'number' ? report.cash : (typeof report.cash === 'object' ? (report.cash?.amount || 0) : 0);
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>JANSEVA-2025 Daily Report - ${reportDate}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body { 
+                font-family: 'Arial', sans-serif; 
+                margin: 10px; 
+                color: #000; 
+                font-size: 11px;
+                line-height: 1.3;
+                background: white;
+              }
+              .header { 
+                text-align: center; 
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+              }
+              .header h1 { 
+                font-size: 18px; 
+                margin: 8px 0; 
+                font-weight: bold;
+                text-transform: uppercase;
+              }
+              .header p { 
+                margin: 3px 0; 
+                font-size: 12px;
+                font-weight: 500;
+              }
+              .report-info {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 15px;
+                padding: 5px 0;
+                border-bottom: 1px solid #ccc;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 12px;
+                font-size: 10px;
+              }
+              th, td { 
+                border: 1px solid #000; 
+                padding: 3px 5px; 
+                text-align: left;
+                vertical-align: top;
+              }
+              th { 
+                background-color: #f5f5f5; 
+                font-weight: bold;
+                text-align: center;
+                font-size: 9px;
+                text-transform: uppercase;
+              }
+              .section-title { 
+                font-weight: bold; 
+                margin: 12px 0 5px 0;
+                text-align: center;
+                font-size: 12px;
+                background-color: #e9ecef;
+                padding: 5px;
+                border: 1px solid #000;
+                text-transform: uppercase;
+              }
+              .two-column { 
+                display: flex; 
+                gap: 15px; 
+              }
+              .column { 
+                flex: 1; 
+              }
+              .amount { 
+                text-align: right; 
+                font-weight: 500;
+              }
+              .total-row { 
+                font-weight: bold; 
+                background-color: #f9f9f9;
+                border-top: 2px solid #000;
+              }
+              .total-row td {
+                font-weight: bold;
+                font-size: 11px;
+              }
+              .summary-box {
+                border: 3px solid #000;
+                padding: 15px;
+                margin: 25px auto;
+                width: 350px;
+                text-align: center;
+                background-color: #f8f9fa;
+              }
+              .summary-box h3 {
+                margin: 0 0 12px 0;
+                font-size: 14px;
+                text-transform: uppercase;
+                border-bottom: 1px solid #000;
+                padding-bottom: 5px;
+              }
+              .summary-table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              .summary-table td {
+                border: 1px solid #000;
+                padding: 6px 10px;
+                font-weight: bold;
+                font-size: 11px;
+              }
+              .net-income-row {
+                background-color: #e3f2fd;
+                font-size: 12px;
+              }
+              .signature-section {
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                page-break-inside: avoid;
+              }
+              .signature-box {
+                text-align: center;
+                width: 200px;
+              }
+              .signature-line {
+                border-bottom: 2px solid #000;
+                width: 180px;
+                height: 40px;
+                margin: 10px auto;
+              }
+              @media print { 
+                body { 
+                  margin: 5px; 
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+                .no-print { 
+                  display: none; 
+                }
+                .page-break {
+                  page-break-before: always;
+                }
+                .summary-box {
+                  page-break-inside: avoid;
+                }
+              }
+              @page {
+                margin: 0.5in;
+                size: A4;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>JANSEVA-2025 (DAILY REPORT)</h1>
+              <p>Complete Financial Summary</p>
+            </div>
+
+            <div class="report-info">
+              <div><strong>DATE:</strong> ${reportDate}</div>
+              <div><strong>USER:</strong> ${report.username || 'N/A'}</div>
+              <div><strong>REPORT ID:</strong> ${report.id.slice(0, 8)}...</div>
+            </div>
+
+            <div class="two-column">
+              <div class="column">
+                <div class="section-title">Deposit Amount (અપેલ રકમ)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Particulars</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.deposit?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL DEPOSIT</td>
+                      <td class="amount">₹${(report.totals?.deposit || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Stamp Printing Report</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 40%">Particulars</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 30%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.stamp?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL STAMP</td>
+                      <td class="amount">₹${(report.totals?.stamp || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Income (Services)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Service Name</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.income?.filter(item => item.amount > 0).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No income recorded</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL INCOME</td>
+                      <td class="amount">₹${(report.totals?.income || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="column">
+                <div class="section-title">Balance (બચત રકમ)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Particulars</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.balance?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL BALANCE</td>
+                      <td class="amount">₹${(report.totals?.balance || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">MGVCL Report</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 40%">Particulars</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 30%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.mgvcl?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL MGVCL</td>
+                      <td class="amount">₹${(report.totals?.mgvcl || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Online Payment</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 35%">Payment Method</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 35%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(report.onlinePayment || report.online)?.filter(item => item.amount > 0 || item.remark).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No online payments</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL ONLINE</td>
+                      <td class="amount">₹${(report.totals?.onlinePayment || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Expenses</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 35%">Expense Type</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 35%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${report.expences?.filter(item => item.amount > 0 || item.name).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No expenses recorded</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL EXPENSES</td>
+                      <td class="amount">₹${(report.totals?.expences || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="summary-box">
+              <h3>Financial Summary</h3>
+              <table class="summary-table">
+                <tbody>
+                  <tr>
+                    <td style="text-align: left; width: 60%;">SERVICE INCOME:</td>
+                    <td style="text-align: right; width: 40%;">₹${(report.totals?.income || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">ONLINE PAYMENT (G PAY):</td>
+                    <td style="text-align: right;">₹${(report.totals?.onlinePayment || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">CASH AMOUNT:</td>
+                    <td style="text-align: right;">₹${cashAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">TOTAL EXPENSES:</td>
+                    <td style="text-align: right;">₹${(report.totals?.expences || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr class="net-income-row">
+                    <td style="text-align: left; font-size: 13px;"><strong>NET INCOME:</strong></td>
+                    <td style="text-align: right; font-size: 13px;"><strong>₹${((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="signature-section">
+              <div class="signature-box">
+                <div><strong>PREPARED BY</strong></div>
+                <div class="signature-line"></div>
+                <div>${report.username || 'N/A'}</div>
+                <div style="font-size: 9px; margin-top: 5px;">${new Date().toLocaleString()}</div>
+              </div>
+              <div class="signature-box">
+                <div><strong>SUPERVISOR SIGN</strong></div>
+                <div class="signature-line"></div>
+                <div>Authorized Signature</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      // Auto print with a small delay to ensure content is loaded
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    } else {
+      alert('Please allow pop-ups to print the report');
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (!newPassword || !confirmPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+
+    try {
+      const response = await fetch('/api/auth', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          password: newPassword,
+          page: 'admin',
+          role: 'admin'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Password changed successfully');
+        setShowPasswordChange(false);
+        setNewPassword('');
+        setConfirmPassword('');
+        setAuthToken(newPassword); // Update auth token to new password
+      } else {
+        alert(`Failed to change password: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error changing password:', error);
+      alert('Error changing password');
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
+  const updateReport = async (updatedReport: Report) => {
+    try {
+      console.log("Attempting to update report:", updatedReport.id);
+      
+      // Add audit log entry
+      const auditEntry = {
+        timestamp: new Date().toISOString(),
+        action: 'modified',
+        user: 'admin',
+        changes: 'Report edited via admin panel'
+      };
+      
+      const reportWithAudit = {
+        ...updatedReport,
+        lastModified: new Date().toISOString(),
+        auditLog: [...(updatedReport.auditLog || []), auditEntry]
+      };
+      
+      const response = await fetch(`/api/reports/${updatedReport.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+          'x-page': 'admin',
+          'x-username': 'admin'
+        },
+        body: JSON.stringify(reportWithAudit)
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || result.error || 'Failed to update report');
+      }
+
+      if (result.success) {
+        // Update the report in the state
+        setReports(prev => 
+          prev.map(report => 
+            report.id === updatedReport.id ? result.report : report
+          )
+        );
+        
+        // Close the modal and reset states
+        setShowModal(false);
+        setSelectedReport(null);
+        setEditMode(false);
+        setEditingReport(null);
+        
+        alert("Report updated successfully!");
+        
+        // Refresh reports to ensure consistency
+        fetchReports();
+        
+        return true;
+      } else {
+        throw new Error(result.message || 'Update failed');
+      }
+    } catch (error) {
+      console.error("Error updating report:", error);
+      alert(`An error occurred while updating the report: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return false;
+    }
+  };
+
+  const exportToCSV = (reportsToExport: Report[] = filteredReports) => {
+    if (reportsToExport.length === 0) {
+      alert("No reports to export");
+      return;
+    }
+
+    const headers = [
+      'Report ID', 'Date', 'Username', 'Total Income', 'Total Expenses', 
+      'Total Deposit', 'Total Stamp', 'Total Balance', 'Total MGVCL', 
+      'Total Online Payment', 'Cash Amount', 'Net Profit'
+    ];
+
+    const csvData = reportsToExport.map(report => [
+      report.id,
+      new Date(report.timestamp).toLocaleDateString(),
+      report.username || '',
+      (report.totals?.income || 0).toFixed(2),
+      (report.totals?.expences || 0).toFixed(2),
+      (report.totals?.deposit || 0).toFixed(2),
+      (report.totals?.stamp || 0).toFixed(2),
+      (report.totals?.balance || 0).toFixed(2),
+      (report.totals?.mgvcl || 0).toFixed(2),
+      (report.totals?.onlinePayment || 0).toFixed(2),
+      (report.cash || 0).toFixed(2),
+      ((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reports_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+
 
   const deleteReport = async (reportId: string) => {
     if (
@@ -803,6 +1387,14 @@ const AdminPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowPasswordChange(true)}
+                className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                data-testid="button-change-password"
+              >
+                <Lock className="h-4 w-4" />
+                <span>Change Password</span>
+              </button>
               <button
                 onClick={() => fetchReports()}
                 className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -1069,11 +1661,121 @@ const AdminPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Export and Print Actions */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Export & Print Options</h3>
+            <div className="text-sm text-gray-600">
+              {filteredReports.length} report(s) available
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => exportToCSV()}
+              className="flex items-center justify-center space-x-3 bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg transition-all transform hover:scale-[1.02] shadow-sm"
+              data-testid="button-export-csv"
+            >
+              <Download className="h-5 w-5" />
+              <div>
+                <div className="font-semibold">Export All CSV</div>
+                <div className="text-sm opacity-90">Download filtered reports</div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => {
+                if (filteredReports.length === 0) {
+                  alert("No reports to print");
+                  return;
+                }
+                // Create a summary print of all reports
+                const printContent = filteredReports.map(report => `
+                  Report ID: ${report.id}
+                  Date: ${new Date(report.timestamp).toLocaleDateString()}
+                  Username: ${report.username || 'N/A'}
+                  Income: ₹${(report.totals?.income || 0).toFixed(2)}
+                  Expenses: ₹${(report.totals?.expences || 0).toFixed(2)}
+                  Net: ₹${((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)}
+                `).join('\n\n');
+                
+                const printWindow = window.open('', '_blank');
+                if (printWindow) {
+                  printWindow.document.write(`
+                    <html>
+                      <head><title>Reports Summary</title></head>
+                      <body style="font-family: monospace; padding: 20px;">
+                        <h1>Jansevakendra - Reports Summary</h1>
+                        <p>Generated: ${new Date().toLocaleString()}</p>
+                        <pre>${printContent}</pre>
+                        <script>window.print(); window.onafterprint = () => window.close();</script>
+                      </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                }
+              }}
+              className="flex items-center justify-center space-x-3 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg transition-all transform hover:scale-[1.02] shadow-sm"
+              data-testid="button-print-summary"
+            >
+              <Printer className="h-5 w-5" />
+              <div>
+                <div className="font-semibold">Print Summary</div>
+                <div className="text-sm opacity-90">Print all filtered reports</div>
+              </div>
+            </button>
+
+            <button
+              onClick={() => {
+                const today = new Date().toISOString().split('T')[0];
+                const todayReports = filteredReports.filter(report => 
+                  new Date(report.timestamp).toISOString().split('T')[0] === today
+                );
+                
+                if (todayReports.length === 0) {
+                  alert("No reports found for today");
+                  return;
+                }
+                
+                exportToCSV(todayReports);
+              }}
+              className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-lg transition-all transform hover:scale-[1.02] shadow-sm"
+              data-testid="button-export-today"
+            >
+              <Calendar className="h-5 w-5" />
+              <div>
+                <div className="font-semibold">Today's CSV</div>
+                <div className="text-sm opacity-90">Export today's reports</div>
+              </div>
+            </button>
+          </div>
+        </div>
+
         {/* Reports Table */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Reports Management</h2>
-            <p className="text-sm text-gray-600">Manage and edit reports from the system</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Reports Management</h2>
+                <p className="text-sm text-gray-600">Manage and edit reports from the system</p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Quick Actions:</span>
+                <button
+                  onClick={() => exportToCSV()}
+                  className="text-green-600 hover:text-green-800 p-2 rounded-lg hover:bg-green-50 transition-colors"
+                  title="Export CSV"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => fetchReports()}
+                  className="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors"
+                  title="Refresh Data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -1170,6 +1872,22 @@ const AdminPage: React.FC = () => {
                               <Eye className="h-4 w-4" />
                             </button>
                             <button
+                              onClick={() => printReport(report)}
+                              className="text-purple-600 hover:text-purple-900 transition-colors p-1 rounded"
+                              title="Print Report"
+                              data-testid={`button-print-report-${index}`}
+                            >
+                              <Printer className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => exportToCSV([report])}
+                              className="text-green-600 hover:text-green-900 transition-colors p-1 rounded"
+                              title="Export as CSV"
+                              data-testid={`button-csv-report-${index}`}
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <button
                               onClick={() => deleteReport(report.id)}
                               className="text-red-600 hover:text-red-900 transition-colors p-1 rounded"
                               title="Delete Report"
@@ -1250,17 +1968,7 @@ const AdminPage: React.FC = () => {
               {editMode ? (
                 <EditReportForm
                   report={selectedReport}
-                  onSave={(updatedReport) => {
-                    // Update the report in the reports array
-                    const updatedReports = reports.map(report => 
-                      report.id === updatedReport.id ? updatedReport : report
-                    );
-                    setReports(updatedReports);
-                    setShowModal(false);
-                    setSelectedReport(null);
-                    setEditMode(false);
-                    alert('Report updated successfully!');
-                  }}
+                  onSave={updateReport}
                   onCancel={() => {
                     setShowModal(false);
                     setSelectedReport(null);
@@ -1344,6 +2052,79 @@ const AdminPage: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Change Modal */}
+      {showPasswordChange && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Change Admin Password</h3>
+              <button
+                onClick={() => {
+                  setShowPasswordChange(false);
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Enter new password"
+                  disabled={passwordChangeLoading}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="Confirm new password"
+                  disabled={passwordChangeLoading}
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={() => {
+                    setShowPasswordChange(false);
+                    setNewPassword('');
+                    setConfirmPassword('');
+                  }}
+                  disabled={passwordChangeLoading}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePasswordChange}
+                  disabled={passwordChangeLoading || !newPassword || !confirmPassword}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 flex items-center space-x-2"
+                >
+                  {passwordChangeLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  <span>Change Password</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
