@@ -933,7 +933,7 @@ const AdminPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    ${(report.onlinePayment || report.online)?.filter(item => item.amount > 0 || item.remark).map((item, index) => `
+                    ${report.onlinePayment?.filter(item => item.amount > 0 || item.remark).map((item, index) => `
                       <tr>
                         <td style="text-align: center">${index + 1}</td>
                         <td>${item.name || 'N/A'}</td>
