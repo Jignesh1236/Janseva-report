@@ -621,7 +621,7 @@ const AdminPage: React.FC = () => {
     if (printWindow) {
       const netAmount = calculateNetAmount(report);
       const reportDate = new Date(report.timestamp).toLocaleDateString('en-IN');
-      const cashAmount = typeof report.cash === 'number' ? report.cash : (typeof report.cash === 'object' ? (report.cash?.amount || 0) : 0);
+      const cashAmount = typeof report.cash === 'number' ? report.cash : 0;
 
       printWindow.document.write(`
         <html>
@@ -1085,7 +1085,7 @@ const AdminPage: React.FC = () => {
   const updateReport = async (updatedReport: Report) => {
     try {
       console.log("Attempting to update report:", updatedReport.id);
-      
+
       // Add audit log entry
       const auditEntry = {
         timestamp: new Date().toISOString(),
@@ -1093,13 +1093,13 @@ const AdminPage: React.FC = () => {
         user: 'admin',
         changes: 'Report edited via admin panel'
       };
-      
+
       const reportWithAudit = {
         ...updatedReport,
         lastModified: new Date().toISOString(),
         auditLog: [...(updatedReport.auditLog || []), auditEntry]
       };
-      
+
       const response = await fetch(`/api/reports/${updatedReport.id}`, {
         method: 'PUT',
         headers: {
@@ -1112,7 +1112,7 @@ const AdminPage: React.FC = () => {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || result.error || 'Failed to update report');
       }
@@ -1124,18 +1124,18 @@ const AdminPage: React.FC = () => {
             report.id === updatedReport.id ? result.report : report
           )
         );
-        
+
         // Close the modal and reset states
         setShowModal(false);
         setSelectedReport(null);
         setEditMode(false);
         setEditingReport(null);
-        
+
         alert("Report updated successfully!");
-        
+
         // Refresh reports to ensure consistency
         fetchReports();
-        
+
         return true;
       } else {
         throw new Error(result.message || 'Update failed');
@@ -1681,7 +1681,7 @@ const AdminPage: React.FC = () => {
                 <div className="text-sm opacity-90">Download filtered reports</div>
               </div>
             </button>
-            
+
             <button
               onClick={() => {
                 if (filteredReports.length === 0) {
@@ -1697,7 +1697,7 @@ const AdminPage: React.FC = () => {
                   Expenses: ₹${(report.totals?.expences || 0).toFixed(2)}
                   Net: ₹${((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)}
                 `).join('\n\n');
-                
+
                 const printWindow = window.open('', '_blank');
                 if (printWindow) {
                   printWindow.document.write(`
@@ -1730,12 +1730,12 @@ const AdminPage: React.FC = () => {
                 const todayReports = filteredReports.filter(report => 
                   new Date(report.timestamp).toISOString().split('T')[0] === today
                 );
-                
+
                 if (todayReports.length === 0) {
                   alert("No reports found for today");
                   return;
                 }
-                
+
                 exportToCSV(todayReports);
               }}
               className="flex items-center justify-center space-x-3 bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-lg transition-all transform hover:scale-[1.02] shadow-sm"
@@ -1777,7 +1777,7 @@ const AdminPage: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -1917,7 +1917,7 @@ const AdminPage: React.FC = () => {
             <div className="text-lg font-semibold">View Reports</div>
             <div className="text-sm opacity-90">Access report dashboard</div>
           </Link>
-          
+
           <Link 
             href="/debug" 
             className="bg-green-600 hover:bg-green-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] shadow-sm"
@@ -1927,13 +1927,13 @@ const AdminPage: React.FC = () => {
             <div className="text-lg font-semibold">Debug Tools</div>
             <div className="text-sm opacity-90">System diagnostics</div>
           </Link>
-          
+
           <div className="bg-purple-600 hover:bg-purple-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] cursor-pointer shadow-sm">
             <Settings className="h-8 w-8 mx-auto mb-2" />
             <div className="text-lg font-semibold">Settings</div>
             <div className="text-sm opacity-90">System configuration</div>
           </div>
-          
+
           <div className="bg-orange-600 hover:bg-orange-700 text-white p-6 rounded-xl text-center transition-all transform hover:scale-[1.02] cursor-pointer shadow-sm">
             <BarChart3 className="h-8 w-8 mx-auto mb-2" />
             <div className="text-lg font-semibold">Analytics</div>
@@ -1963,7 +1963,7 @@ const AdminPage: React.FC = () => {
                 </svg>
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               {editMode ? (
                 <EditReportForm
@@ -1987,7 +1987,7 @@ const AdminPage: React.FC = () => {
                         <p><strong>Last Modified:</strong> {formatDate(selectedReport.lastModified)}</p>
                       )}
                     </div>
-                    
+
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <h4 className="font-semibold text-blue-800 mb-2">Financial Summary</h4>
                       <div className="space-y-1 text-sm">
