@@ -71,12 +71,14 @@ const ViewReportsPage: React.FC = () => {
       const result = await response.json();
 
       if (result.success) {
-        setCurrentUsername(result.username || usernameInput.trim());
+        // Use the entered username as the current username
+        const actualUsername = usernameInput.trim();
+        setCurrentUsername(actualUsername);
         setIsAuthenticated(true);
         setLoginError(false);
         setAuthToken(passwordInput); // Store for API calls
         setLoading(true);
-        console.log('Login successful, username:', result.username || usernameInput.trim());
+        console.log('Login successful, username:', actualUsername);
       } else {
         setLoginError(true);
         console.log('Login failed:', result.message);
