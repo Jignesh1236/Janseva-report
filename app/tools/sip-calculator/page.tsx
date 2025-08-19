@@ -26,7 +26,7 @@ export default function SIPCalculator() {
     
     // SIP Future Value calculation using compound interest formula
     // FV = P * [((1 + r)^n - 1) / r] * (1 + r)
-    const futureValue = monthly * [((Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate) * (1 + monthlyRate)];
+    const futureValue = monthly * (((Math.pow(1 + monthlyRate, totalPayments) - 1) / monthlyRate) * (1 + monthlyRate));
     
     const totalInvestment = monthly * totalPayments;
     const totalReturns = futureValue - totalInvestment;
@@ -58,7 +58,7 @@ export default function SIPCalculator() {
     for (let year = 1; year <= result.years; year++) {
       const months = year * 12;
       const investment = monthly * months;
-      const futureValue = monthly * [((Math.pow(1 + rate, months) - 1) / rate) * (1 + rate)];
+      const futureValue = monthly * (((Math.pow(1 + rate, months) - 1) / rate) * (1 + rate));
       const returns = futureValue - investment;
       
       data.push({
