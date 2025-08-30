@@ -603,6 +603,36 @@ export default function OnlineTools() {
           </p>
         </div>
 
+        {/* ToolHub Advertisement Banner */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-700 rounded-2xl shadow-2xl overflow-hidden relative">
+            <div className="absolute inset-0 bg-black/20"></div>
+            <div className="relative z-10 p-8 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <span className="text-4xl mr-3">🛠️</span>
+                <h2 className="text-3xl font-bold text-white">Discover More Tools!</h2>
+              </div>
+              <p className="text-xl text-gray-100 mb-6 max-w-2xl mx-auto">
+                Explore an extensive collection of additional online tools at ToolHub - your one-stop destination for productivity solutions.
+              </p>
+              <a 
+                href="https://toolhub-yypj.onrender.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-8 py-4 bg-white text-purple-700 font-bold rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
+              >
+                <span className="mr-2">Visit ToolHub</span>
+                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+              <div className="mt-4 text-sm text-gray-200">
+                ✨ Hundreds of additional tools • 🚀 Fast & Reliable • 💡 Innovative Solutions
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-8">
             {/* Search and Filters */}
             <div className="bg-white p-6 rounded-2xl shadow-lg backdrop-blur-sm bg-opacity-95">
