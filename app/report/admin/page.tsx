@@ -106,9 +106,17 @@ const EditReportForm: React.FC<{
   };
 
   const updateReportDate = (dateString: string) => {
+    console.log("updateReportDate called with:", dateString);
     const updatedReport = { ...editedReport };
-    updatedReport.timestamp = dateString;
-    setEditedReport(updatedReport);
+    // Ensure we have a valid date string
+    if (dateString && !isNaN(Date.parse(dateString))) {
+      updatedReport.timestamp = dateString;
+      setEditedReport(updatedReport);
+      console.log("Date successfully updated to:", dateString);
+      console.log("Updated report timestamp:", updatedReport.timestamp);
+    } else {
+      console.log("Invalid date provided:", dateString);
+    }
   };
 
   const addSectionItem = (section: string) => {
@@ -166,7 +174,9 @@ const EditReportForm: React.FC<{
   };
 
   const handleSave = () => {
+    console.log("HandleSave called, validating report...");
     if (validateReport()) {
+      console.log("Validation passed, preparing to save...");
       // Add audit trail
       const auditLog = {
         timestamp: new Date().toISOString(),
@@ -181,7 +191,10 @@ const EditReportForm: React.FC<{
         auditLog: [...(report.auditLog || []), auditLog],
       };
 
+      console.log("Calling onSave with:", finalReport);
       onSave(finalReport);
+    } else {
+      console.log("Validation failed, not saving.");
     }
   };
 
@@ -201,12 +214,56 @@ const EditReportForm: React.FC<{
             </label>
             <input
               type="datetime-local"
-              value={new Date(editedReport.timestamp).toISOString().slice(0, 16)}
-              onChange={(e) => updateReportDate(new Date(e.target.value).toISOString())}
+              value={(() => {
+                try {
+                  if (editedReport.timestamp) {
+                    const date = new Date(editedReport.timestamp);
+                    if (!isNaN(date.getTime())) {
+                      return date.toISOString().slice(0, 16);
+                    }
+                  }
+                  return new Date().toISOString().slice(0, 16);
+                } catch (e) {
+                  return new Date().toISOString().slice(0, 16);
+                }
+              })()}
+              onChange={(e) => {
+                const inputValue = e.target.value;
+                console.log("DateTime input changed:", inputValue);
+                if (inputValue) {
+                  try {
+                    const newDate = new Date(inputValue);
+                    if (!isNaN(newDate.getTime())) {
+                      const isoString = newDate.toISOString();
+                      console.log("Converting to ISO:", isoString);
+                      updateReportDate(isoString);
+                    } else {
+                      console.log("Invalid date created from input:", inputValue);
+                    }
+                  } catch (error) {
+                    console.error("Error parsing date:", error);
+                  }
+                } else {
+                  console.log("Empty date input, setting to current time");
+                  updateReportDate(new Date().toISOString());
+                }
+              }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Current: {new Date(editedReport.timestamp).toLocaleString()}
+              Current: {(() => {
+                try {
+                  if (editedReport.timestamp) {
+                    const date = new Date(editedReport.timestamp);
+                    if (!isNaN(date.getTime())) {
+                      return date.toLocaleString();
+                    }
+                  }
+                  return 'No valid date set';
+                } catch (e) {
+                  return 'Invalid date format';
+                }
+              })()}
             </p>
           </div>
         </div>
@@ -1112,16 +1169,19 @@ const AdminPage: React.FC = () => {
       });
 
       const result = await response.json();
+      console.log("API Response:", result);
 
       if (!response.ok) {
         throw new Error(result.message || result.error || 'Failed to update report');
       }
 
       if (result.success) {
+        console.log("Update successful, data:", result.data || result.report);
         // Update the report in the state
+        const updatedReportData = result.data || result.report || updatedReport;
         setReports(prev => 
           prev.map(report => 
-            report.id === updatedReport.id ? result.report : report
+            report.id === updatedReport.id ? updatedReportData : report
           )
         );
 
