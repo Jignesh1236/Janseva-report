@@ -81,7 +81,7 @@ export async function PUT(
     const { id } = params;
     const updatedData = await request.json();
 
-    const updateFields = {
+    const updateFields: any = {
       income: updatedData.income,
       deposit: updatedData.deposit,
       stamp: updatedData.stamp,
