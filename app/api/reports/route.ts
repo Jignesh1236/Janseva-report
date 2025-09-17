@@ -133,7 +133,9 @@ export async function GET(request: NextRequest) {
     const mappedData = filteredData.map(report => ({
       ...report,
       onlinePayment: report.online || [],
-      cash: typeof report.cash === 'object' ? (report.cash?.amount || 0) : (report.cash || 0) // Handle both object and direct number
+      cash: typeof report.cash === 'object' ? (report.cash?.amount || 0) : (report.cash || 0), // Handle both object and direct number
+      // Use date and time if available, otherwise fall back to timestamp
+      timestamp: report['date and time'] || report.timestamp
     }));
 
     return NextResponse.json(mappedData);

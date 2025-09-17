@@ -108,14 +108,26 @@ const EditReportForm: React.FC<{
   const updateReportDate = (dateString: string) => {
     console.log("updateReportDate called with:", dateString);
     const updatedReport = { ...editedReport };
-    // Ensure we have a valid date string
-    if (dateString && !isNaN(Date.parse(dateString))) {
-      updatedReport.timestamp = dateString;
-      setEditedReport(updatedReport);
-      console.log("Date successfully updated to:", dateString);
-      console.log("Updated report timestamp:", updatedReport.timestamp);
+    
+    if (dateString && dateString.trim() !== '') {
+      try {
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+          updatedReport.timestamp = date.toISOString();
+          setEditedReport(updatedReport);
+          console.log("Date successfully updated to:", updatedReport.timestamp);
+        } else {
+          console.log("Invalid date provided:", dateString);
+          alert("Invalid date format. Please select a valid date and time.");
+        }
+      } catch (error) {
+        console.error("Error parsing date:", error);
+        alert("Error updating date. Please try again.");
+      }
     } else {
-      console.log("Invalid date provided:", dateString);
+      console.log("Empty date input, setting to current time");
+      updatedReport.timestamp = new Date().toISOString();
+      setEditedReport(updatedReport);
     }
   };
 
@@ -219,29 +231,41 @@ const EditReportForm: React.FC<{
                   if (editedReport.timestamp) {
                     const date = new Date(editedReport.timestamp);
                     if (!isNaN(date.getTime())) {
-                      return date.toISOString().slice(0, 16);
+                      // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+                      const year = date.getFullYear();
+                      const month = String(date.getMonth() + 1).padStart(2, '0');
+                      const day = String(date.getDate()).padStart(2, '0');
+                      const hours = String(date.getHours()).padStart(2, '0');
+                      const minutes = String(date.getMinutes()).padStart(2, '0');
+                      return `${year}-${month}-${day}T${hours}:${minutes}`;
                     }
                   }
-                  return new Date().toISOString().slice(0, 16);
+                  // Default to current date and time
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  const month = String(now.getMonth() + 1).padStart(2, '0');
+                  const day = String(now.getDate()).padStart(2, '0');
+                  const hours = String(now.getHours()).padStart(2, '0');
+                  const minutes = String(now.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
                 } catch (e) {
-                  return new Date().toISOString().slice(0, 16);
+                  const now = new Date();
+                  const year = now.getFullYear();
+                  const month = String(now.getMonth() + 1).padStart(2, '0');
+                  const day = String(now.getDate()).padStart(2, '0');
+                  const hours = String(now.getHours()).padStart(2, '0');
+                  const minutes = String(now.getMinutes()).padStart(2, '0');
+                  return `${year}-${month}-${day}T${hours}:${minutes}`;
                 }
               })()}
               onChange={(e) => {
                 const inputValue = e.target.value;
                 console.log("DateTime input changed:", inputValue);
                 if (inputValue) {
-                  try {
-                    const newDate = new Date(inputValue);
-                    if (!isNaN(newDate.getTime())) {
-                      const isoString = newDate.toISOString();
-                      console.log("Converting to ISO:", isoString);
-                      updateReportDate(isoString);
-                    } else {
-                      console.log("Invalid date created from input:", inputValue);
-                    }
-                  } catch (error) {
-                    console.error("Error parsing date:", error);
+                  // Convert datetime-local input to proper date object
+                  const dateObj = new Date(inputValue);
+                  if (!isNaN(dateObj.getTime())) {
+                    updateReportDate(dateObj.toISOString());
                   }
                 } else {
                   console.log("Empty date input, setting to current time");
@@ -256,7 +280,14 @@ const EditReportForm: React.FC<{
                   if (editedReport.timestamp) {
                     const date = new Date(editedReport.timestamp);
                     if (!isNaN(date.getTime())) {
-                      return date.toLocaleString();
+                      return date.toLocaleString('en-IN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      });
                     }
                   }
                   return 'No valid date set';

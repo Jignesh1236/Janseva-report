@@ -81,19 +81,26 @@ export async function PUT(
     const { id } = params;
     const updatedData = await request.json();
 
+    const updateFields = {
+      income: updatedData.income,
+      deposit: updatedData.deposit,
+      stamp: updatedData.stamp,
+      balance: updatedData.balance,
+      mgvcl: updatedData.mgvcl,
+      expences: updatedData.expences,
+      online: updatedData.onlinePayment, // Map onlinePayment to online field
+      cash: updatedData.cash || 0,
+      totals: updatedData.totals,
+    };
+
+    // If timestamp is being updated (from admin edit), save to date and time column
+    if (updatedData.timestamp) {
+      updateFields['date and time'] = updatedData.timestamp;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('reports')
-      .update({
-        income: updatedData.income,
-        deposit: updatedData.deposit,
-        stamp: updatedData.stamp,
-        balance: updatedData.balance,
-        mgvcl: updatedData.mgvcl,
-        expences: updatedData.expences,
-        online: updatedData.onlinePayment, // Map onlinePayment to online field
-        cash: updatedData.cash || 0,
-        totals: updatedData.totals,
-      })
+      .update(updateFields)
       .eq('id', id)
       .select()
       .single();
@@ -110,7 +117,9 @@ export async function PUT(
     const mappedData = {
       ...data,
       onlinePayment: data.online || [],
-      cash: typeof data.cash === 'object' ? (data.cash?.amount || 0) : (data.cash || 0)
+      cash: typeof data.cash === 'object' ? (data.cash?.amount || 0) : (data.cash || 0),
+      // Use date and time if available, otherwise fall back to timestamp
+      timestamp: data['date and time'] || data.timestamp
     };
 
     return NextResponse.json({ 
