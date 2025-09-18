@@ -226,12 +226,12 @@ export default function MobilePlanComparator() {
                       <h3 className="font-semibold mb-2">Best Value Analysis</h3>
                       <div className="text-sm space-y-1">
                         {(() => {
-                          const cheapest = selectedPlanDetails.reduce((min, plan) => 
-                            plan && (!min || plan.price < min.price) ? plan : min, null);
-                          const bestDaily = selectedPlanDetails.reduce((min, plan) => 
-                            plan && (!min || (plan.price / plan.validity) < (min.price / min.validity)) ? plan : min, null);
-                          const mostData = selectedPlanDetails.reduce((max, plan) => 
-                            plan && (!max || parseFloat(plan.data) > parseFloat(max.data)) ? plan : max, null);
+                          const cheapest = selectedPlanDetails.reduce((min: any, plan: any) => 
+                            plan && (!min || plan.price < min.price) ? plan : min, null as any);
+                          const bestDaily = selectedPlanDetails.reduce((min: any, plan: any) => 
+                            plan && (!min || (plan.price / plan.validity) < (min.price / min.validity)) ? plan : min, null as any);
+                          const mostData = selectedPlanDetails.reduce((max: any, plan: any) => 
+                            plan && (!max || parseFloat(plan.data) > parseFloat(max.data)) ? plan : max, null as any);
                           
                           return (
                             <>

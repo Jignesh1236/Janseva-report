@@ -95,7 +95,7 @@ export async function PUT(
 
     // If timestamp is being updated (from admin edit), save to date and time column
     if (updatedData.timestamp) {
-      updateFields['date and time'] = updatedData.timestamp;
+      (updateFields as any)['date and time'] = updatedData.timestamp;
     }
 
     const { data, error } = await supabaseAdmin
