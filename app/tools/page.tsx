@@ -573,6 +573,14 @@ export default function OnlineTools() {
       icon: '🏠', 
       category: 'Government'
     },
+    { 
+      name: 'Redirect Link Tool', 
+      description: 'Create and manage your redirect links',
+      path: 'https://fontconvo.onrender.com', 
+      icon: '🔗', 
+      category: 'Utilities',
+      popular: true
+    },
   ];
 
   const categories = ['All', ...Array.from(new Set(tools.map(tool => tool.category))).sort()];
@@ -700,23 +708,38 @@ export default function OnlineTools() {
                   <h2 className="text-2xl font-bold text-gray-800">Popular Tools</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {popularTools.map((tool, index) => (
-                    <Link key={index} href={tool.path}>
-                      <div className="p-4 border border-gray-200 rounded-xl hover:bg-gradient-to-br hover:from-primary/5 hover:to-secondary/5 transition-all duration-300 cursor-pointer group hover:shadow-md hover:border-primary/30">
-                        <div className="flex items-center space-x-3">
-                          <div className="text-2xl group-hover:scale-110 transition-transform duration-200">
-                            {tool.icon}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200 truncate">
-                              {tool.name}
-                            </h3>
-                            <p className="text-sm text-gray-500 truncate">{tool.description}</p>
+                  {popularTools.map((tool, index) => {
+                    const isExternal = tool.path.startsWith('http');
+                    const ToolWrapper = ({ children }: { children: React.ReactNode }) => {
+                      if (isExternal) {
+                        return (
+                          <a href={tool.path} target="_blank" rel="noopener noreferrer">
+                            {children}
+                          </a>
+                        );
+                      }
+                      return <Link href={tool.path}>{children}</Link>;
+                    };
+
+                    return (
+                      <ToolWrapper key={index}>
+                        <div className="p-4 border border-gray-200 rounded-xl hover:bg-gradient-to-br hover:from-primary/5 hover:to-secondary/5 transition-all duration-300 cursor-pointer group hover:shadow-md hover:border-primary/30">
+                          <div className="flex items-center space-x-3">
+                            <div className="text-2xl group-hover:scale-110 transition-transform duration-200">
+                              {tool.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200 truncate">
+                                {tool.name}
+                                {isExternal && <span className="ml-1 text-xs">↗</span>}
+                              </h3>
+                              <p className="text-sm text-gray-500 truncate">{tool.description}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </ToolWrapper>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -748,68 +771,84 @@ export default function OnlineTools() {
                     ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' 
                     : 'space-y-4'
                 }>
-                  {filteredTools.map((tool, index) => (
-                    <Link key={index} href={tool.path}>
-                      <div className={`
-                        group cursor-pointer transition-all duration-300 hover:shadow-lg
-                        ${viewMode === 'grid' 
-                          ? 'p-6 border border-gray-200 rounded-xl hover:bg-gradient-to-br hover:from-primary/5 hover:to-secondary/5 hover:border-primary/30 hover:-translate-y-1' 
-                          : 'flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary/30'
-                        }
-                      `}>
-                        {viewMode === 'grid' ? (
-                          <div className="text-center space-y-4">
-                            <div className="text-4xl group-hover:scale-110 transition-transform duration-200">
-                              {tool.icon}
-                            </div>
-                            <div>
-                              <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200 mb-2">
-                                {tool.name}
-                              </h3>
-                              <p className="text-sm text-gray-600 leading-relaxed">
-                                {tool.description}
-                              </p>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                                {tool.category}
-                              </span>
-                              {tool.popular && (
-                                <span className="text-xs text-yellow-600">⭐ Popular</span>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="text-3xl mr-4 group-hover:scale-110 transition-transform duration-200">
-                              {tool.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between mb-1">
-                                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200">
-                                  {tool.name}
-                                </h3>
-                                <div className="flex items-center space-x-2">
-                                  {tool.popular && (
-                                    <span className="text-xs text-yellow-600">⭐</span>
-                                  )}
-                                  <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                                    {tool.category}
-                                  </span>
-                                </div>
+                  {filteredTools.map((tool, index) => {
+                    const isExternal = tool.path.startsWith('http');
+                    const ToolWrapper = ({ children }: { children: React.ReactNode }) => {
+                      if (isExternal) {
+                        return (
+                          <a href={tool.path} target="_blank" rel="noopener noreferrer">
+                            {children}
+                          </a>
+                        );
+                      }
+                      return <Link href={tool.path}>{children}</Link>;
+                    };
+
+                    return (
+                      <ToolWrapper key={index}>
+                        <div className={`
+                          group cursor-pointer transition-all duration-300 hover:shadow-lg
+                          ${viewMode === 'grid' 
+                            ? 'p-6 border border-gray-200 rounded-xl hover:bg-gradient-to-br hover:from-primary/5 hover:to-secondary/5 hover:border-primary/30 hover:-translate-y-1' 
+                            : 'flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-primary/30'
+                          }
+                        `}>
+                          {viewMode === 'grid' ? (
+                            <div className="text-center space-y-4">
+                              <div className="text-4xl group-hover:scale-110 transition-transform duration-200">
+                                {tool.icon}
                               </div>
-                              <p className="text-sm text-gray-600">
-                                {tool.description}
-                              </p>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200 mb-2">
+                                  {tool.name}
+                                  {isExternal && <span className="ml-1 text-xs">↗</span>}
+                                </h3>
+                                <p className="text-sm text-gray-600 leading-relaxed">
+                                  {tool.description}
+                                </p>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                  {tool.category}
+                                </span>
+                                {tool.popular && (
+                                  <span className="text-xs text-yellow-600">⭐ Popular</span>
+                                )}
+                              </div>
                             </div>
-                            <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors duration-200 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                            </svg>
-                          </>
-                        )}
-                      </div>
-                    </Link>
-                  ))}
+                          ) : (
+                            <>
+                              <div className="text-3xl mr-4 group-hover:scale-110 transition-transform duration-200">
+                                {tool.icon}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-primary transition-colors duration-200">
+                                    {tool.name}
+                                    {isExternal && <span className="ml-1 text-xs">↗</span>}
+                                  </h3>
+                                  <div className="flex items-center space-x-2">
+                                    {tool.popular && (
+                                      <span className="text-xs text-yellow-600">⭐</span>
+                                    )}
+                                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                                      {tool.category}
+                                    </span>
+                                  </div>
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                  {tool.description}
+                                </p>
+                              </div>
+                              <svg className="w-5 h-5 text-gray-400 group-hover:text-primary transition-colors duration-200 ml-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            </>
+                          )}
+                        </div>
+                      </ToolWrapper>
+                    );
+                  })}
                 </div>
               )}
             </div>
