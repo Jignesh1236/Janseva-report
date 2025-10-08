@@ -96,7 +96,7 @@ const NewReportPage: React.FC = () => {
       if (response.ok) {
         const reports = await response.json();
         // Extract unique usernames from reports
-        const uniqueUsernames = [...new Set(reports.map((report: any) => report.username).filter(Boolean))];
+        const uniqueUsernames = Array.from(new Set(reports.map((report: any) => report.username).filter(Boolean)));
         setUsernameSuggestions(uniqueUsernames as string[]);
       }
     } catch (error) {
