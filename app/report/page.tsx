@@ -82,13 +82,27 @@ const NewReportPage: React.FC = () => {
   const [customServiceName, setCustomServiceName] = useState("");
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [showUsernameSuggestions, setShowUsernameSuggestions] = useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
     checkTodayReport();
     fetchUsernameSuggestions();
   }, []);
+
+  const fetchUsernameSuggestions = async () => {
+    try {
+      const response = await fetch('/api/reports');
+      if (response.ok) {
+        const reports = await response.json();
+        // Extract unique usernames from reports
+        const uniqueUsernames = [...new Set(reports.map((report: any) => report.username).filter(Boolean))];
+        setUsernameSuggestions(uniqueUsernames as string[]);
+      }
+    } catch (error) {
+      console.error('Error fetching username suggestions:', error);
+    }
+  };
 
   const handlePasswordSubmit = async () => {
     try {
@@ -131,19 +145,6 @@ const NewReportPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking today\'s report:', error);
-    }
-  };
-
-  const fetchUsernameSuggestions = async () => {
-    try {
-      const response = await fetch('/api/reports');
-      if (response.ok) {
-        const reports = await response.json();
-        const uniqueUsernames = Array.from(new Set(reports.map((report: any) => report.username).filter(Boolean)));
-        setUsernameSuggestions(uniqueUsernames);
-      }
-    } catch (error) {
-      console.error('Error fetching username suggestions:', error);
     }
   };
 
@@ -456,7 +457,15 @@ const NewReportPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div 
+      className="min-h-screen bg-gray-50"
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.username-input-container')) {
+          setShowUsernameSuggestions(false);
+        }
+      }}
+    >
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-6">
@@ -555,38 +564,50 @@ const NewReportPage: React.FC = () => {
 
         {/* Username Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="max-w-md mx-auto relative">
+          <div className="max-w-md mx-auto relative username-input-container">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Username (Required for submission)
             </label>
             <input
               type="text"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              onFocus={() => setShowSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                setShowUsernameSuggestions(true);
+              }}
+              onFocus={() => setShowUsernameSuggestions(true)}
               placeholder="Enter your username"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
-            {showSuggestions && usernameSuggestions.length > 0 && (
+            
+            {/* Username Suggestions Dropdown */}
+            {showUsernameSuggestions && usernameSuggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {usernameSuggestions
-                  .filter(suggestion => suggestion.toLowerCase().includes(username.toLowerCase()))
+                  .filter(suggestion => 
+                    suggestion.toLowerCase().includes(username.toLowerCase())
+                  )
                   .map((suggestion, index) => (
-                    <div
+                    <button
                       key={index}
+                      type="button"
                       onClick={() => {
                         setUsername(suggestion);
-                        setShowSuggestions(false);
+                        setShowUsernameSuggestions(false);
                       }}
-                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-gray-700 transition-colors"
+                      className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg"
                     >
-                      {suggestion}
-                    </div>
-                  ))}
+                      <div className="flex items-center justify-between">
+                        <span className="text-gray-800">{suggestion}</span>
+                        <span className="text-xs text-gray-500">Previously used</span>
+                      </div>
+                    </button>
+                  ))
+                }
               </div>
             )}
+            
             {!username.trim() && (
               <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
             )}
