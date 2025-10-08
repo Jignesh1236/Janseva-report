@@ -81,10 +81,13 @@ const NewReportPage: React.FC = () => {
   const [services, setServices] = useState<string[]>(defaultServices);
   const [customServiceName, setCustomServiceName] = useState("");
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const router = useRouter();
 
   React.useEffect(() => {
     checkTodayReport();
+    fetchUsernameSuggestions();
   }, []);
 
   const handlePasswordSubmit = async () => {
@@ -131,6 +134,19 @@ const NewReportPage: React.FC = () => {
     }
   };
 
+  const fetchUsernameSuggestions = async () => {
+    try {
+      const response = await fetch('/api/reports');
+      if (response.ok) {
+        const reports = await response.json();
+        const uniqueUsernames = [...new Set(reports.map((report: any) => report.username).filter(Boolean))];
+        setUsernameSuggestions(uniqueUsernames);
+      }
+    } catch (error) {
+      console.error('Error fetching username suggestions:', error);
+    }
+  };
+
   const requestAdminPermission = async () => {
     setAdminPermissionRequested(true);
     // In a real application, you would send a notification to admin
@@ -170,13 +186,13 @@ const NewReportPage: React.FC = () => {
     if (index >= defaultServices.length) { // Only allow removing custom services
       const newServices = services.filter((_, i) => i !== index);
       setServices(newServices);
-      
+
       // Remove associated amount data
       const key = `income-${index}`;
       const newAmounts = { ...amounts };
       delete newAmounts[key];
       setAmounts(newAmounts);
-      
+
       // Adjust keys for services after the removed one
       const adjustedAmounts: { [key: string]: number } = {};
       Object.keys(newAmounts).forEach(oldKey => {
@@ -539,7 +555,7 @@ const NewReportPage: React.FC = () => {
 
         {/* Username Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="max-w-md mx-auto">
+          <div className="max-w-md mx-auto relative">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Username (Required for submission)
             </label>
@@ -547,10 +563,30 @@ const NewReportPage: React.FC = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               placeholder="Enter your username"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
+            {showSuggestions && usernameSuggestions.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                {usernameSuggestions
+                  .filter(suggestion => suggestion.toLowerCase().includes(username.toLowerCase()))
+                  .map((suggestion, index) => (
+                    <div
+                      key={index}
+                      onClick={() => {
+                        setUsername(suggestion);
+                        setShowSuggestions(false);
+                      }}
+                      className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-gray-700 transition-colors"
+                    >
+                      {suggestion}
+                    </div>
+                  ))}
+              </div>
+            )}
             {!username.trim() && (
               <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
             )}
