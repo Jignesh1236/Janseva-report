@@ -2,8 +2,8 @@
 import React, { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import Navigation from './components/Navigation'
-import AIChat from './components/AIChat'
 import ImageSlideshow from './components/ImageSlideshow'
+import WarningModal from './components/WarningModal'
 import { motion, useScroll, useTransform, AnimatePresence, useInView } from 'framer-motion'
 import DecryptedText from './components/DecryptedText'
 
@@ -431,11 +431,21 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState<'en' | 'gu'>('en');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [showChat, setShowChat] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [showWarning, setShowWarning] = useState(false);
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 0.2], [1, 0.8]);
+
+  const handleAIChatClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setShowWarning(true);
+  };
+
+  const handleConfirmRedirect = () => {
+    setShowWarning(false);
+    window.open('https://talk.shapes.inc/jansevatutu/dm', '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setLoading(false), 2500);
@@ -565,6 +575,13 @@ export default function Home() {
         <AnimatePresence>
           <FloatingAIText />
         </AnimatePresence>
+
+        {/* Warning Modal */}
+        <WarningModal 
+          isOpen={showWarning} 
+          onClose={() => setShowWarning(false)} 
+          onConfirm={handleConfirmRedirect} 
+        />
 
 
         {/* Enhanced Hero Section */}
@@ -844,27 +861,16 @@ export default function Home() {
                 ? 'Get instant help and answers to your questions 24/7'
                 : 'તમારા પ્રશ્નોના તાત્કાલિક જવાબો ૨૪/૭ મેળવો'}
             </p>
-            <motion.button
+            <motion.a
+              href="https://talk.shapes.inc/jansevatutu/dm"
+              onClick={handleAIChatClick}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowChat(!showChat)}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300"
+              className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
             >
-              {showChat ? 'Hide Chat' : t.toggleChat}
-            </motion.button>
+              {language === 'en' ? 'Open AI Chat' : 'એઆઈ ચેટ ખોલો'}
+            </motion.a>
           </div>
-          <AnimatePresence>
-            {showChat && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.3 }}
-              >
-                <AIChat />
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.section>
 
         {/* Enhanced Footer */}
@@ -957,18 +963,19 @@ export default function Home() {
             >
               <p className="text-gray-400 text-center lg:text-left">&copy; 2025 Janseva Kendra (Private). {t.allRightsReserved}</p>
               <div className="flex gap-4">
-                <motion.button
+                <motion.a
+                  href="https://talk.shapes.inc/jansevatutu/dm"
+                  onClick={handleAIChatClick}
                   variants={paperVariants}
                   whileHover="hover"
                   whileTap="tap"
-                  onClick={() => setShowChat(!showChat)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 flex items-center gap-2"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:from-purple-600 hover:to-pink-600 transition-all duration-300 flex items-center gap-2 cursor-pointer"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
                   </svg>
-                  {showChat ? 'Close Chat' : 'Open Chat'}
-                </motion.button>
+                  AI Chat
+                </motion.a>
                 <motion.button
                   variants={paperVariants}
                   whileHover="hover"
