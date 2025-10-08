@@ -139,7 +139,7 @@ const NewReportPage: React.FC = () => {
       const response = await fetch('/api/reports');
       if (response.ok) {
         const reports = await response.json();
-        const uniqueUsernames = [...new Set(reports.map((report: any) => report.username).filter(Boolean))];
+        const uniqueUsernames = Array.from(new Set(reports.map((report: any) => report.username).filter(Boolean)));
         setUsernameSuggestions(uniqueUsernames);
       }
     } catch (error) {
