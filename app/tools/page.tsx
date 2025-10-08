@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { Translations } from '../types/translations';
-import AIChat from '../components/AIChat';
+import WarningModal from '../components/WarningModal';
 
 // Import translations
 const translations: Record<string, Translations> = {
@@ -89,26 +89,35 @@ interface Tool {
 
 // Floating AI Help Widget
 function AIHelpWidget() {
-  const [open, setOpen] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+
+  const handleAIChatClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setShowWarning(true);
+  };
+
+  const handleConfirmRedirect = () => {
+    setShowWarning(false);
+    window.open('https://talk.shapes.inc/jansevatutu/dm', '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="fixed z-50 bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+      <a
+        href="https://talk.shapes.inc/jansevatutu/dm"
+        onClick={handleAIChatClick}
+        className="fixed z-50 bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg p-4 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
         style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}
         aria-label="AI Help"
       >
-        {open ? (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-        ) : (
-          <span className="font-bold text-lg">🤖</span>
-        )}
-      </button>
-      {open && (
-        <div className="fixed z-50 bottom-24 right-6 w-80 max-w-full">
-          <AIChat />
-        </div>
-      )}
+        <span className="font-bold text-lg">🤖</span>
+      </a>
+      
+      <WarningModal 
+        isOpen={showWarning} 
+        onClose={() => setShowWarning(false)} 
+        onConfirm={handleConfirmRedirect} 
+      />
     </>
   );
 }
