@@ -92,12 +92,10 @@ const NewReportPage: React.FC = () => {
 
   const fetchUsernameSuggestions = async () => {
     try {
-      const response = await fetch('/api/reports');
+      const response = await fetch('/api/reports/usernames');
       if (response.ok) {
-        const reports = await response.json();
-        // Extract unique usernames from reports
-        const uniqueUsernames = Array.from(new Set(reports.map((report: any) => report.username).filter(Boolean)));
-        setUsernameSuggestions(uniqueUsernames as string[]);
+        const usernames = await response.json();
+        setUsernameSuggestions(usernames);
       }
     } catch (error) {
       console.error('Error fetching username suggestions:', error);
