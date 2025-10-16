@@ -25,18 +25,26 @@ export default function QRCodeGenerator() {
       if (!ctx) return;
       
       canvas.width = size;
-      canvas.height = size + 30; // Extra space for watermark
+      canvas.height = size;
       
       // Draw QR code
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0, size, size);
       
-      // Draw JS watermark
-      ctx.fillStyle = '#666';
-      ctx.font = 'bold 16px Arial';
+      // Calculate center position and logo size
+      const logoSize = size * 0.2; // 20% of QR code size
+      const centerX = size / 2;
+      const centerY = size / 2;
+      
+      // Draw white background for logo
+      ctx.fillStyle = 'white';
+      ctx.fillRect(centerX - logoSize / 2 - 5, centerY - logoSize / 2 - 5, logoSize + 10, logoSize + 10);
+      
+      // Draw JS logo in center
+      ctx.fillStyle = '#5A67D8';
+      ctx.font = `bold ${logoSize}px Arial`;
       ctx.textAlign = 'center';
-      ctx.fillText('JS', canvas.width / 2, size + 20);
+      ctx.textBaseline = 'middle';
+      ctx.fillText('JS', centerX, centerY);
       
       setQrCodeUrl(canvas.toDataURL('image/png'));
     };
