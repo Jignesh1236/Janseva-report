@@ -22,6 +22,8 @@ export default function QRCodeGenerator() {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       
+      if (!ctx) return;
+      
       canvas.width = size;
       canvas.height = size + 30; // Extra space for watermark
       
