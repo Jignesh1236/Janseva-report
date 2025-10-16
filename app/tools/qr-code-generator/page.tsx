@@ -11,15 +11,39 @@ export default function QRCodeGenerator() {
 
   const generateQRCode = () => {
     if (!text.trim()) return;
+
+    // Using QR Server API (free service) with JS watermark
+    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&ecc=${errorCorrection}&format=png&qzone=1&margin=10`;
     
-    // Using QR Server API (free service)
-    const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&ecc=${errorCorrection}`;
-    setQrCodeUrl(apiUrl);
+    // Add JS watermark by creating a canvas overlay
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      canvas.width = size;
+      canvas.height = size + 30; // Extra space for watermark
+      
+      // Draw QR code
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, size, size);
+      
+      // Draw JS watermark
+      ctx.fillStyle = '#666';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('JS', canvas.width / 2, size + 20);
+      
+      setQrCodeUrl(canvas.toDataURL('image/png'));
+    };
+    img.src = apiUrl;
   };
 
   const downloadQRCode = () => {
     if (!qrCodeUrl) return;
-    
+
     const link = document.createElement('a');
     link.href = qrCodeUrl;
     link.download = 'qrcode.png';
@@ -171,7 +195,7 @@ export default function QRCodeGenerator() {
             </div>
             <div className="space-y-4">
               <div className="p-4 bg-orange-50 rounded-lg">
-                <h3 className="font-semibold text-orange-800 mb-2">WiFi Network</h3>
+                <h3 className="font-semibold text-orange-800 mb-2">WiFi Netawork</h3>
                 <p className="text-sm text-orange-600">WIFI:T:WPA;S:NetworkName;P:Password;;</p>
               </div>
               <div className="p-4 bg-pink-50 rounded-lg">
