@@ -8,6 +8,7 @@ export default function QRCodeGenerator() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [size, setSize] = useState(200);
   const [errorCorrection, setErrorCorrection] = useState('M');
+  const [withLogo, setWithLogo] = useState(true);
 
   const generateQRCode = () => {
     if (!text.trim()) return;
@@ -30,26 +31,31 @@ export default function QRCodeGenerator() {
       // Draw QR code
       ctx.drawImage(qrImg, 0, 0, size, size);
       
-      // Calculate center position and logo size
-      const logoSize = size * 0.25; // 25% of QR code size
-      const centerX = size / 2;
-      const centerY = size / 2;
-      
-      // Draw white background for logo
-      ctx.fillStyle = 'white';
-      ctx.fillRect(centerX - logoSize / 2 - 5, centerY - logoSize / 2 - 5, logoSize + 10, logoSize + 10);
-      
-      // Load and draw custom logo
-      const logoImg = new Image();
-      logoImg.onload = () => {
-        ctx.drawImage(logoImg, centerX - logoSize / 2, centerY - logoSize / 2, logoSize, logoSize);
+      if (withLogo) {
+        // Calculate center position and logo size
+        const logoSize = size * 0.25; // 25% of QR code size
+        const centerX = size / 2;
+        const centerY = size / 2;
+        
+        // Draw white background for logo
+        ctx.fillStyle = 'white';
+        ctx.fillRect(centerX - logoSize / 2 - 5, centerY - logoSize / 2 - 5, logoSize + 10, logoSize + 10);
+        
+        // Load and draw custom logo
+        const logoImg = new Image();
+        logoImg.onload = () => {
+          ctx.drawImage(logoImg, centerX - logoSize / 2, centerY - logoSize / 2, logoSize, logoSize);
+          setQrCodeUrl(canvas.toDataURL('image/png'));
+        };
+        logoImg.onerror = () => {
+          // Fallback: just set QR code without logo if image fails to load
+          setQrCodeUrl(canvas.toDataURL('image/png'));
+        };
+        logoImg.src = '/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp';
+      } else {
+        // No logo, just use the QR code
         setQrCodeUrl(canvas.toDataURL('image/png'));
-      };
-      logoImg.onerror = () => {
-        // Fallback: just set QR code without logo if image fails to load
-        setQrCodeUrl(canvas.toDataURL('image/png'));
-      };
-      logoImg.src = '/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp';
+      }
     };
     qrImg.src = apiUrl;
   };
@@ -133,6 +139,23 @@ export default function QRCodeGenerator() {
                     <option value="H">High (30%)</option>
                   </select>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <span className="text-sm font-medium text-gray-700">Add Logo to QR Code</span>
+                <button
+                  type="button"
+                  onClick={() => setWithLogo(!withLogo)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                    withLogo ? 'bg-purple-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      withLogo ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
 
               <div className="flex space-x-4">
