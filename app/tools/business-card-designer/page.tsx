@@ -10,8 +10,10 @@ export default function QRCodeGenerator() {
   const [errorCorrection, setErrorCorrection] = useState('M');
   const [withLogo, setWithLogo] = useState(true);
 
-  const generateQRCode = () => {
+  const generateQRCode = (forceLogo = null) => {
     if (!text.trim()) return;
+
+    const useLogo = forceLogo !== null ? forceLogo : withLogo;
 
     // Using QR Server API (free service) with JS watermark
     const apiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(text)}&ecc=${errorCorrection}&format=png&qzone=1&margin=10`;
@@ -31,7 +33,7 @@ export default function QRCodeGenerator() {
       // Draw QR code
       ctx.drawImage(qrImg, 0, 0, size, size);
       
-      if (withLogo) {
+      if (useLogo) {
         // Calculate center position and logo size
         const logoSize = size * 0.25; // 25% of QR code size
         const centerX = size / 2;
@@ -158,9 +160,9 @@ export default function QRCodeGenerator() {
                 </button>
               </div>
 
-              <div className="flex space-x-4">
+              <div className="flex space-x-3">
                 <button
-                  onClick={generateQRCode}
+                  onClick={() => generateQRCode()}
                   disabled={!text.trim()}
                   className={`flex-1 px-6 py-3 rounded-xl text-white font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                     !text.trim()
@@ -169,6 +171,18 @@ export default function QRCodeGenerator() {
                   }`}
                 >
                   Generate QR Code
+                </button>
+                <button
+                  onClick={() => generateQRCode(false)}
+                  disabled={!text.trim()}
+                  className={`px-6 py-3 rounded-xl text-white font-medium transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    !text.trim()
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 focus:ring-blue-500'
+                  }`}
+                  title="Generate without logo"
+                >
+                  Clean
                 </button>
                 <button
                   onClick={clearAll}
