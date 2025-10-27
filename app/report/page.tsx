@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Calculator } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion"; // Import motion from framer-motion
 
 const defaultServices = [
   "7/12 8-A",
@@ -83,9 +84,17 @@ const NewReportPage: React.FC = () => {
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
   const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
   const [showUsernameSuggestions, setShowUsernameSuggestions] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false); // State for onboarding modal
   const router = useRouter();
 
-  React.useEffect(() => {
+  useEffect(() => {
+    // Check if the user has seen the onboarding tutorial before
+    const hasSeenOnboarding = localStorage.getItem('hasSeenReportOnboarding');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+
     checkTodayReport();
     fetchUsernameSuggestions();
   }, []);
@@ -94,12 +103,18 @@ const NewReportPage: React.FC = () => {
     try {
       const response = await fetch('/api/reports/usernames');
       if (response.ok) {
-        const usernames = await response.json();
-        setUsernameSuggestions(usernames);
+        const data = await response.json();
+        setUsernameSuggestions(data.usernames || []);
       }
     } catch (error) {
-      console.error('Error fetching username suggestions:', error);
+      console.error('Error fetching usernames:', error);
     }
+  };
+
+  // Handler to close the onboarding modal and mark it as seen
+  const handleCloseOnboarding = () => {
+    localStorage.setItem('hasSeenReportOnboarding', 'true');
+    setShowOnboarding(false);
   };
 
   const handlePasswordSubmit = async () => {
@@ -496,6 +511,12 @@ const NewReportPage: React.FC = () => {
               >
                 Admin
               </Link>
+              <button
+                onClick={() => setShowTutorial(true)}
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg"
+              >
+                Tutorial
+              </button>
             </div>
           </div>
         </div>
@@ -578,7 +599,7 @@ const NewReportPage: React.FC = () => {
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             />
-            
+
             {/* Username Suggestions Dropdown */}
             {showUsernameSuggestions && usernameSuggestions.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
@@ -605,7 +626,7 @@ const NewReportPage: React.FC = () => {
                 }
               </div>
             )}
-            
+
             {!username.trim() && (
               <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
             )}
@@ -614,7 +635,7 @@ const NewReportPage: React.FC = () => {
 
         {/* Submit Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 text-center">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-green-50 p-4 rounded-lg">
               <p className="text-sm text-green-600 font-medium">INCOME (Services Only)</p>
               <p className="text-2xl font-bold text-green-700">₹{incomeTotal.toFixed(2)}</p>
@@ -691,6 +712,441 @@ const NewReportPage: React.FC = () => {
                     Add Service
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tutorial Modal */}
+        {showTutorial && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-gray-800">Report Tutorial</h3>
+                <button
+                  onClick={() => setShowTutorial(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-6">
+                  {/* Getting Started */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-blue-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">1</span>
+                      Getting Started
+                    </h4>
+                    <p className="text-sm text-blue-800 ml-8">Enter your username at the bottom of the page before submitting. You can select from previously used usernames or enter a new one.</p>
+                  </motion.div>
+
+                  {/* Income Section */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-green-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                      <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">2</span>
+                      INCOME Section
+                    </h4>
+                    <ul className="text-sm text-green-800 ml-8 space-y-1">
+                      <li>• Fill in the amount earned from each service</li>
+                      <li>• Click "Add Custom Service" to add services not in the default list</li>
+                      <li>• Custom services can be removed if added by mistake</li>
+                      <li>• Leave blank (or 0) for services not used today</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Deposit Section */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-blue-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">3</span>
+                      DEPOSIT AMOUNT Section
+                    </h4>
+                    <p className="text-sm text-blue-800 ml-8">Enter amounts deposited to different accounts (SBI, CSC ID, Janseva Kendra, etc.)</p>
+                  </motion.div>
+
+                  {/* Stamp Printing */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-purple-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-purple-900 mb-2 flex items-center">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">4</span>
+                      STAMP PRINTING REPORT
+                    </h4>
+                    <ul className="text-sm text-purple-800 ml-8 space-y-1">
+                      <li>• Enter stamp amounts for each CSC ID</li>
+                      <li>• Add remarks if needed (optional but recommended for tracking)</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Balance */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-yellow-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-yellow-900 mb-2 flex items-center">
+                      <span className="bg-yellow-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">5</span>
+                      BALANCE Section
+                    </h4>
+                    <p className="text-sm text-yellow-800 ml-8">Record current balances in CSC Wallets, Anyror, and Janseva Kendra accounts with remarks</p>
+                  </motion.div>
+
+                  {/* MGVCL */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-indigo-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-indigo-900 mb-2 flex items-center">
+                      <span className="bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">6</span>
+                      MGVCL REPORT
+                    </h4>
+                    <p className="text-sm text-indigo-800 ml-8">Enter MGVCL transaction amounts for each CSC ID with relevant remarks</p>
+                  </motion.div>
+
+                  {/* Expenses */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-red-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+                      <span className="bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">7</span>
+                      EXPENSES Section
+                    </h4>
+                    <ul className="text-sm text-red-800 ml-8 space-y-1">
+                      <li>• Record all business expenses</li>
+                      <li>• Include stamps, PVC orders, transfers, bank fees, etc.</li>
+                      <li>• Add detailed remarks explaining each expense</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Online Payment */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.9 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-teal-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-teal-900 mb-2 flex items-center">
+                      <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">8</span>
+                      ONLINE PAYMENT Section
+                    </h4>
+                    <p className="text-sm text-teal-800 ml-8">Record payments received through different online methods (PhonePe, Google Pay, Bank Transfer, etc.)</p>
+                  </motion.div>
+
+                  {/* Cash */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.0 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-orange-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-orange-900 mb-2 flex items-center">
+                      <span className="bg-orange-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">9</span>
+                      CASH Section
+                    </h4>
+                    <p className="text-sm text-orange-800 ml-8">Enter the total cash amount received today</p>
+                  </motion.div>
+
+                  {/* Submission */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gray-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <span className="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">10</span>
+                      Submitting the Report
+                    </h4>
+                    <ul className="text-sm text-gray-800 ml-8 space-y-1">
+                      <li>• Review all totals at the bottom of the page</li>
+                      <li>• Ensure your username is entered</li>
+                      <li>• Click "Submit Report" to save</li>
+                      <li>• You can only submit one report per day (unless admin approves)</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Tips */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border-2 border-blue-200"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2">💡 Pro Tips</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Fill out the report at the end of each working day</li>
+                      <li>• Double-check all amounts before submitting</li>
+                      <li>• Use remarks to add context for unusual transactions</li>
+                      <li>• Keep physical receipts as backup documentation</li>
+                      <li>• View your submitted reports in the "View Reports" section</li>
+                    </ul>
+                  </motion.div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <button
+                  onClick={() => setShowTutorial(false)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Got it! Close Tutorial
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Onboarding Modal */}
+        {showOnboarding && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full my-8">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-2xl font-bold text-gray-800">Welcome to the Report Page!</h3>
+                <button
+                  onClick={handleCloseOnboarding}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-6">
+                  <p className="text-lg text-gray-700 leading-relaxed">
+                    This guide will help you quickly understand how to use the report page. We recommend reviewing it the first time you log in.
+                  </p>
+                  {/* Reusing tutorial content for onboarding with animations */}
+
+                  {/* Getting Started */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-blue-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">1</span>
+                      Getting Started
+                    </h4>
+                    <p className="text-sm text-blue-800 ml-8">Enter your username at the bottom of the page before submitting. You can select from previously used usernames or enter a new one.</p>
+                  </motion.div>
+
+                  {/* Income Section */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-green-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-green-900 mb-2 flex items-center">
+                      <span className="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">2</span>
+                      INCOME Section
+                    </h4>
+                    <ul className="text-sm text-green-800 ml-8 space-y-1">
+                      <li>• Fill in the amount earned from each service</li>
+                      <li>• Click "Add Custom Service" to add services not in the default list</li>
+                      <li>• Custom services can be removed if added by mistake</li>
+                      <li>• Leave blank (or 0) for services not used today</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Deposit Section */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-blue-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">3</span>
+                      DEPOSIT AMOUNT Section
+                    </h4>
+                    <p className="text-sm text-blue-800 ml-8">Enter amounts deposited to different accounts (SBI, CSC ID, Janseva Kendra, etc.)</p>
+                  </motion.div>
+
+                  {/* Stamp Printing */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-purple-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-purple-900 mb-2 flex items-center">
+                      <span className="bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">4</span>
+                      STAMP PRINTING REPORT
+                    </h4>
+                    <ul className="text-sm text-purple-800 ml-8 space-y-1">
+                      <li>• Enter stamp amounts for each CSC ID</li>
+                      <li>• Add remarks if needed (optional but recommended for tracking)</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Balance */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-yellow-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-yellow-900 mb-2 flex items-center">
+                      <span className="bg-yellow-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">5</span>
+                      BALANCE Section
+                    </h4>
+                    <p className="text-sm text-yellow-800 ml-8">Record current balances in CSC Wallets, Anyror, and Janseva Kendra accounts with remarks</p>
+                  </motion.div>
+
+                  {/* MGVCL */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.7 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-indigo-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-indigo-900 mb-2 flex items-center">
+                      <span className="bg-indigo-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">6</span>
+                      MGVCL REPORT
+                    </h4>
+                    <p className="text-sm text-indigo-800 ml-8">Enter MGVCL transaction amounts for each CSC ID with relevant remarks</p>
+                  </motion.div>
+
+                  {/* Expenses */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-red-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-red-900 mb-2 flex items-center">
+                      <span className="bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">7</span>
+                      EXPENSES Section
+                    </h4>
+                    <ul className="text-sm text-red-800 ml-8 space-y-1">
+                      <li>• Record all business expenses</li>
+                      <li>• Include stamps, PVC orders, transfers, bank fees, etc.</li>
+                      <li>• Add detailed remarks explaining each expense</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Online Payment */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.9 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-teal-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-teal-900 mb-2 flex items-center">
+                      <span className="bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">8</span>
+                      ONLINE PAYMENT Section
+                    </h4>
+                    <p className="text-sm text-teal-800 ml-8">Record payments received through different online methods (PhonePe, Google Pay, Bank Transfer, etc.)</p>
+                  </motion.div>
+
+                  {/* Cash */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.0 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-orange-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-orange-900 mb-2 flex items-center">
+                      <span className="bg-orange-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">9</span>
+                      CASH Section
+                    </h4>
+                    <p className="text-sm text-orange-800 ml-8">Enter the total cash amount received today</p>
+                  </motion.div>
+
+                  {/* Submission */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 1.1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gray-50 p-4 rounded-lg"
+                  >
+                    <h4 className="font-semibold text-gray-900 mb-2 flex items-center">
+                      <span className="bg-gray-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm mr-2">10</span>
+                      Submitting the Report
+                    </h4>
+                    <ul className="text-sm text-gray-800 ml-8 space-y-1">
+                      <li>• Review all totals at the bottom of the page</li>
+                      <li>• Ensure your username is entered</li>
+                      <li>• Click "Submit Report" to save</li>
+                      <li>• You can only submit one report per day (unless admin approves)</li>
+                    </ul>
+                  </motion.div>
+
+                  {/* Tips */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 1.2 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border-2 border-blue-200"
+                  >
+                    <h4 className="font-semibold text-blue-900 mb-2">💡 Pro Tips</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Fill out the report at the end of each working day</li>
+                      <li>• Double-check all amounts before submitting</li>
+                      <li>• Use remarks to add context for unusual transactions</li>
+                      <li>• Keep physical receipts as backup documentation</li>
+                      <li>• View your submitted reports in the "View Reports" section</li>
+                    </ul>
+                  </motion.div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+                <button
+                  onClick={handleCloseOnboarding}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors"
+                >
+                  Got it! Close Tutorial
+                </button>
               </div>
             </div>
           </div>
