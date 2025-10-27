@@ -595,40 +595,57 @@ const NewReportPage: React.FC = () => {
                 setShowUsernameSuggestions(true);
               }}
               onFocus={() => setShowUsernameSuggestions(true)}
-              placeholder="Enter your username"
+              placeholder="Enter your username (type to see suggestions)"
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              autoComplete="off"
               required
             />
 
             {/* Username Suggestions Dropdown */}
             {showUsernameSuggestions && usernameSuggestions.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-[9999] w-full mt-1 bg-white border-2 border-blue-300 rounded-lg shadow-2xl max-h-60 overflow-y-auto">
                 {usernameSuggestions
                   .filter(suggestion => 
-                    suggestion.toLowerCase().includes(username.toLowerCase())
+                    username.trim() === '' || suggestion.toLowerCase().includes(username.toLowerCase())
                   )
+                  .slice(0, 10) // Show maximum 10 suggestions
                   .map((suggestion, index) => (
                     <button
                       key={index}
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
                         setUsername(suggestion);
                         setShowUsernameSuggestions(false);
                       }}
-                      className="w-full text-left px-4 py-2 hover:bg-blue-50 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg"
+                      className="w-full text-left px-4 py-3 hover:bg-blue-100 transition-colors duration-150 first:rounded-t-lg last:rounded-b-lg border-b border-gray-100 last:border-b-0"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-800">{suggestion}</span>
-                        <span className="text-xs text-gray-500">Previously used</span>
+                        <span className="text-gray-900 font-medium">{suggestion}</span>
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">Previously used</span>
                       </div>
                     </button>
                   ))
                 }
+                {usernameSuggestions.filter(suggestion => 
+                  username.trim() === '' || suggestion.toLowerCase().includes(username.toLowerCase())
+                ).length === 0 && username.trim() !== '' && (
+                  <div className="px-4 py-3 text-gray-500 text-sm bg-yellow-50 rounded-lg">
+                    <strong>No matching usernames.</strong> Type your username and click submit.
+                  </div>
+                )}
               </div>
             )}
 
             {!username.trim() && (
               <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
+            )}
+            
+            {usernameSuggestions.length > 0 && (
+              <p className="text-gray-500 text-xs mt-1">
+                💡 Click on the input field to see previously used usernames
+              </p>
             )}
           </div>
         </div>
