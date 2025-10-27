@@ -10,7 +10,7 @@ export default function QRCodeGenerator() {
   const [errorCorrection, setErrorCorrection] = useState('M');
   const [withLogo, setWithLogo] = useState(true);
 
-  const generateQRCode = (forceLogo = null) => {
+  const generateQRCode = (forceLogo: boolean | null = null) => {
     if (!text.trim()) return;
 
     const useLogo = forceLogo !== null ? forceLogo : withLogo;
