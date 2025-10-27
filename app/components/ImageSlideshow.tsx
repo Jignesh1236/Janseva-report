@@ -20,17 +20,16 @@ const ImageSlideshow = () => {
   const images = [
     '/icons/image silde show/Googlewwww.png',
     '/icons/image silde show/googleww.png',
-    '/icons/image silde show/image.png',
   ];
 
   useEffect(() => {
     if (!isHovered || isMobile) {
       const timer = setInterval(() => {
         setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
-      }, 5000); // Increased to 5 seconds for better viewing
+      }, 3000); // 3 seconds for better performance
       return () => clearInterval(timer);
     }
-  }, [isHovered, isMobile]);
+  }, [isHovered, isMobile, images.length]);
 
   const nextSlide = () => {
     setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
@@ -71,8 +70,8 @@ const ImageSlideshow = () => {
   };
 
   return (
-    <div 
-      className="relative w-full h-[300px] sm:h-[400px] md:h-[500px] overflow-hidden rounded-xl shadow-2xl bg-gradient-to-br from-gray-50 to-gray-100"
+    <div
+      className="relative w-full h-[250px] sm:h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden rounded-xl shadow-2xl bg-gradient-to-br from-gray-50 to-gray-100"
       onMouseEnter={() => !isMobile && setIsHovered(true)}
       onMouseLeave={() => !isMobile && setIsHovered(false)}
     >
@@ -98,7 +97,10 @@ const ImageSlideshow = () => {
               alt={`Slide ${currentIndex + 1}`}
               fill
               style={{ objectFit: 'contain' }}
-              priority
+              priority={currentIndex === 0}
+              loading={currentIndex === 0 ? 'eager' : 'lazy'}
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 90vw, 80vw"
+              quality={85}
               className="transition-all duration-700 hover:scale-105"
             />
           </motion.div>
@@ -146,8 +148,8 @@ const ImageSlideshow = () => {
               setCurrentIndex(index);
             }}
             className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
-              currentIndex === index 
-                ? 'bg-primary' 
+              currentIndex === index
+                ? 'bg-primary'
                 : 'bg-gray-400 hover:bg-gray-500'
             }`}
             whileHover={{ scale: 1.2 }}
@@ -162,7 +164,7 @@ const ImageSlideshow = () => {
       </div>
 
       {/* Slide Counter with Animation */}
-      <motion.div 
+      <motion.div
         className="absolute top-2 sm:top-4 right-2 sm:right-4 bg-black/60 text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full text-xs sm:text-sm font-medium backdrop-blur-sm"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -172,7 +174,7 @@ const ImageSlideshow = () => {
       </motion.div>
 
       {/* Progress Bar */}
-      <motion.div 
+      <motion.div
         className="absolute bottom-0 left-0 h-0.5 sm:h-1 bg-primary"
         initial={{ width: "0%" }}
         animate={{ width: `${((currentIndex + 1) / images.length) * 100}%` }}
@@ -193,4 +195,4 @@ const ImageSlideshow = () => {
   );
 };
 
-export default ImageSlideshow; 
+export default ImageSlideshow;
