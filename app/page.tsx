@@ -270,7 +270,7 @@ function FloatingAIText() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
+          body: JSON.JSON.stringify({
             message: 'Give me a short, inspiring message about digital services and citizen empowerment.'
           }),
         });
@@ -589,8 +589,8 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           style={{ opacity, scale }}
-          transition={{ duration: 0.8 }}
-          className="relative py-16 sm:py-32 bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-emerald-50/80 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-emerald-900/40 rounded-3xl shadow-2xl mx-4 mt-6 border border-white/30 backdrop-blur-lg overflow-hidden"
+          transition={{ duration: 0.5 }}
+          className="relative py-12 sm:py-24 md:py-32 bg-gradient-to-br from-blue-50/80 via-purple-50/80 to-emerald-50/80 dark:from-blue-900/40 dark:via-purple-900/40 dark:to-emerald-900/40 rounded-2xl sm:rounded-3xl shadow-2xl mx-2 sm:mx-4 mt-4 sm:mt-6 border border-white/30 backdrop-blur-lg overflow-hidden"
         >
           {/* Enhanced animated background */}
           <div className="absolute inset-0 overflow-hidden">
