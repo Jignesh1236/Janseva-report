@@ -270,7 +270,7 @@ function FloatingAIText() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.JSON.stringify({
+          body: JSON.stringify({
             message: 'Give me a short, inspiring message about digital services and citizen empowerment.'
           }),
         });
