@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       new Set(data?.map(report => report.username).filter(Boolean))
     );
 
-    return NextResponse.json(uniqueUsernames);
+    return NextResponse.json({ usernames: uniqueUsernames });
   } catch (error) {
     console.error('Error in usernames API:', error);
     return NextResponse.json(
