@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Calculator } from "lucide-react";
+import { ArrowLeft, Save, Calculator, Printer } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion"; // Import motion from framer-motion
 
@@ -135,6 +135,7 @@ const NewReportPage: React.FC = () => {
       if (result.success) {
         setIsAuthenticated(true);
         setPasswordError(false);
+        fetchUsernameSuggestions();
       } else {
         setPasswordError(true);
       }
@@ -158,6 +159,22 @@ const NewReportPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error checking today\'s report:', error);
+    }
+  };
+
+  const checkDuplicateReport = async (usernameToCheck: string) => {
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      const response = await fetch(`/api/reports/check-duplicate?date=${today}&username=${encodeURIComponent(usernameToCheck)}`);
+      if (response.ok) {
+        const data = await response.json();
+        return data.isDuplicate;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking duplicate report:', error);
+      return false;
     }
   };
 
@@ -234,6 +251,462 @@ const NewReportPage: React.FC = () => {
   const onlinePaymentTotal = calculateTotal(onlinePaymentParticulars, "onlinePayment");
     const cashTotal = cash;
 
+  const handlePrintTempReport = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const reportDate = new Date().toLocaleDateString('en-IN');
+      const cashAmount = parseFloat(cash.toString()) || 0;
+
+      const reportData = {
+        income: services.map((service, index) => ({
+          name: service,
+          amount: amounts[`income-${index}`] || 0,
+        })),
+        deposit: particulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`deposit-${index}`] || 0,
+        })),
+        stamp: stampParticulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`stamp-${index}`] || 0,
+          remark: remarks[`stamp-${index}`] || "",
+        })),
+        balance: balanceParticulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`balance-${index}`] || 0,
+          remark: remarks[`balance-${index}`] || "",
+        })),
+        mgvcl: mgvclParticulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`mgvcl-${index}`] || 0,
+          remark: remarks[`mgvcl-${index}`] || "",
+        })),
+        expences: expencesParticulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`expences-${index}`] || 0,
+          remark: remarks[`expences-${index}`] || "",
+        })),
+        onlinePayment: onlinePaymentParticulars.map((particular, index) => ({
+          name: particular,
+          amount: amounts[`onlinePayment-${index}`] || 0,
+          remark: remarks[`onlinePayment-${index}`] || "",
+        })),
+        totals: {
+          income: incomeTotal,
+          deposit: depositTotal,
+          stamp: stampTotal,
+          balance: balanceTotal,
+          mgvcl: mgvclTotal,
+          expences: expencesTotal,
+          onlinePayment: onlinePaymentTotal,
+          cash: cashAmount,
+        },
+      };
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>JANSEVA-2025 Daily Report - ${reportDate}</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              body { 
+                font-family: 'Arial', sans-serif; 
+                margin: 10px; 
+                color: #000; 
+                font-size: 11px;
+                line-height: 1.3;
+                background: white;
+              }
+              .header { 
+                text-align: center; 
+                margin-bottom: 20px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 10px;
+              }
+              .header h1 { 
+                font-size: 18px; 
+                margin: 8px 0; 
+                font-weight: bold;
+                text-transform: uppercase;
+              }
+              .header p { 
+                margin: 3px 0; 
+                font-size: 12px;
+                font-weight: 500;
+              }
+              .report-info {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 15px;
+                padding: 5px 0;
+                border-bottom: 1px solid #ccc;
+              }
+              table { 
+                width: 100%; 
+                border-collapse: collapse; 
+                margin-bottom: 12px;
+                font-size: 10px;
+              }
+              th, td { 
+                border: 1px solid #000; 
+                padding: 3px 5px; 
+                text-align: left;
+                vertical-align: top;
+              }
+              th { 
+                background-color: #f5f5f5; 
+                font-weight: bold;
+                text-align: center;
+                font-size: 9px;
+                text-transform: uppercase;
+              }
+              .section-title { 
+                font-weight: bold; 
+                margin: 12px 0 5px 0;
+                text-align: center;
+                font-size: 12px;
+                background-color: #e9ecef;
+                padding: 5px;
+                border: 1px solid #000;
+                text-transform: uppercase;
+              }
+              .two-column { 
+                display: flex; 
+                gap: 15px; 
+              }
+              .column { 
+                flex: 1; 
+              }
+              .amount { 
+                text-align: right; 
+                font-weight: 500;
+              }
+              .total-row { 
+                font-weight: bold; 
+                background-color: #f9f9f9;
+                border-top: 2px solid #000;
+              }
+              .total-row td {
+                font-weight: bold;
+                font-size: 11px;
+              }
+              .summary-box {
+                border: 3px solid #000;
+                padding: 15px;
+                margin: 25px auto;
+                width: 350px;
+                text-align: center;
+                background-color: #f8f9fa;
+              }
+              .summary-box h3 {
+                margin: 0 0 12px 0;
+                font-size: 14px;
+                text-transform: uppercase;
+                border-bottom: 1px solid #000;
+                padding-bottom: 5px;
+              }
+              .summary-table {
+                width: 100%;
+                border-collapse: collapse;
+              }
+              .summary-table td {
+                border: 1px solid #000;
+                padding: 6px 10px;
+                font-weight: bold;
+                font-size: 11px;
+              }
+              .net-income-row {
+                background-color: #e3f2fd;
+                font-size: 12px;
+              }
+              .signature-section {
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                page-break-inside: avoid;
+              }
+              .signature-box {
+                text-align: center;
+                width: 200px;
+              }
+              .signature-line {
+                border-bottom: 2px solid #000;
+                width: 180px;
+                height: 40px;
+                margin: 10px auto;
+              }
+              @media print { 
+                body { 
+                  margin: 5px; 
+                  -webkit-print-color-adjust: exact;
+                  color-adjust: exact;
+                }
+                .no-print { 
+                  display: none; 
+                }
+                .page-break {
+                  page-break-before: always;
+                }
+                .summary-box {
+                  page-break-inside: avoid;
+                }
+              }
+              @page {
+                margin: 0.5in;
+                size: A4;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>JANSEVA-2025 (DAILY REPORT)</h1>
+              <p>Complete Financial Summary</p>
+            </div>
+
+            <div class="report-info">
+              <div><strong>DATE:</strong> ${reportDate}</div>
+            </div>
+
+            <div class="two-column">
+              <div class="column">
+                <div class="section-title">Deposit Amount (અપેલ રકમ)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Particulars</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.deposit?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL DEPOSIT</td>
+                      <td class="amount">₹${(reportData.totals?.deposit || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Stamp Printing Report</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 40%">Particulars</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 30%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.stamp?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL STAMP</td>
+                      <td class="amount">₹${(reportData.totals?.stamp || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Income (Services)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Service Name</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.income?.filter(item => item.amount > 0).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No income recorded</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL INCOME</td>
+                      <td class="amount">₹${(reportData.totals?.income || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="column">
+                <div class="section-title">Balance (બચત રકમ)</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 10%">No</th>
+                      <th style="width: 65%">Particulars</th>
+                      <th style="width: 25%">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.balance?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="3" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="2" style="text-align: center">TOTAL BALANCE</td>
+                      <td class="amount">₹${(reportData.totals?.balance || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">MGVCL Report</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 40%">Particulars</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 30%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.mgvcl?.map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No data available</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL MGVCL</td>
+                      <td class="amount">₹${(reportData.totals?.mgvcl || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Online Payment</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 35%">Payment Method</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 35%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.onlinePayment?.filter(item => item.amount > 0 || item.remark).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No online payments</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL ONLINE</td>
+                      <td class="amount">₹${(reportData.totals?.onlinePayment || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+
+                <div class="section-title">Expenses</div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width: 8%">No</th>
+                      <th style="width: 35%">Expense Type</th>
+                      <th style="width: 22%">Amount (₹)</th>
+                      <th style="width: 35%">Remark</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${reportData.expences?.filter(item => item.amount > 0 || item.name).map((item, index) => `
+                      <tr>
+                        <td style="text-align: center">${index + 1}</td>
+                        <td>${item.name || 'N/A'}</td>
+                        <td class="amount">₹${(item.amount || 0).toFixed(2)}</td>
+                        <td>${item.remark || '-'}</td>
+                      </tr>
+                    `).join('') || '<tr><td colspan="4" style="text-align: center; color: #666;">No expenses recorded</td></tr>'}
+                    <tr class="total-row">
+                      <td colspan="3" style="text-align: center">TOTAL EXPENSES</td>
+                      <td class="amount">₹${(reportData.totals?.expences || 0).toFixed(2)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="summary-box">
+              <h3>Financial Summary</h3>
+              <table class="summary-table">
+                <tbody>
+                  <tr>
+                    <td style="text-align: left; width: 60%;">SERVICE INCOME:</td>
+                    <td style="text-align: right; width: 40%;">₹${(reportData.totals?.income || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">ONLINE PAYMENT (G PAY):</td>
+                    <td style="text-align: right;">₹${(reportData.totals?.onlinePayment || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">CASH AMOUNT:</td>
+                    <td style="text-align: right;">₹${cashAmount.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td style="text-align: left;">TOTAL EXPENSES:</td>
+                    <td style="text-align: right;">₹${(reportData.totals?.expences || 0).toFixed(2)}</td>
+                  </tr>
+                  <tr class="net-income-row">
+                    <td style="text-align: left; font-size: 13px;"><strong>NET INCOME:</strong></td>
+                    <td style="text-align: right; font-size: 13px;"><strong>₹${((reportData.totals?.income || 0) - (reportData.totals?.expences || 0)).toFixed(2)}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="signature-section">
+              <div class="signature-box">
+                <div><strong>PREPARED BY</strong></div>
+                <div class="signature-line"></div>
+                <div style="font-size: 9px; margin-top: 5px;">${new Date().toLocaleString()}</div>
+              </div>
+              <div class="signature-box">
+                <div><strong>SUPERVISOR SIGN</strong></div>
+                <div class="signature-line"></div>
+                <div>Authorized Signature</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    } else {
+      alert('Please allow pop-ups to print the report');
+    }
+  };
+
   const handleSubmit = async () => {
     if (!canSubmitToday && !adminPermissionRequested) {
       alert('You have already submitted a report today. Please request admin permission to submit another report.');
@@ -243,6 +716,21 @@ const NewReportPage: React.FC = () => {
     if (!username.trim()) {
       alert('Please enter your username before submitting the report.');
       return;
+    }
+
+    // Check for duplicate report
+    const isDuplicate = await checkDuplicateReport(username.trim());
+    if (isDuplicate) {
+      const confirmSubmit = window.confirm(
+        `⚠️ DUPLICATE REPORT DETECTED!\n\n` +
+        `A report has already been submitted today (${new Date().toLocaleDateString()}) ` +
+        `by username "${username.trim()}".\n\n` +
+        `Do you still want to submit this report?`
+      );
+      
+      if (!confirmSubmit) {
+        return;
+      }
     }
 
     setLoading(true);
@@ -499,6 +987,13 @@ const NewReportPage: React.FC = () => {
                 Total: ₹{(incomeTotal + depositTotal + stampTotal + balanceTotal + mgvclTotal + onlinePaymentTotal + cashTotal - expencesTotal).toFixed(2)}
               </div>
               </div>
+              <button
+                onClick={handlePrintTempReport}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2"
+              >
+                <Printer className="h-5 w-5" />
+                <span>Print Temp Report</span>
+              </button>
               <Link
                 href="/reports/view"
                 className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
