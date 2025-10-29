@@ -19,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="icon" type="image/webp" href="/icons/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp" />
+        <script defer src="https://cloud.umami.is/script.js" data-website-id="95ae87b7-eaaf-4cef-9b01-66a93f57a242"></script>
       </head>
       <body className={inter.className}>
         <NavigationWrapper />
@@ -28,4 +29,4 @@ export default function RootLayout({
       </body>
     </html>
   )
-} 
+}
