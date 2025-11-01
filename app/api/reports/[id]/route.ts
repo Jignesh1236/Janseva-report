@@ -91,6 +91,7 @@ export async function PUT(
       online: updatedData.onlinePayment, // Map onlinePayment to online field
       cash: updatedData.cash || 0,
       totals: updatedData.totals,
+      prepared_by: updatedData.prepared_by || updatedData.username,
     };
 
     // If timestamp is being updated (from admin edit), save to date and time column

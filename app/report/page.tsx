@@ -86,6 +86,15 @@ const NewReportPage: React.FC = () => {
   const [showUsernameSuggestions, setShowUsernameSuggestions] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false); // State for onboarding modal
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; fieldType: string; index: number; currentName: string } | null>(null);
+  const [editFieldName, setEditFieldName] = useState("");
+  const [depositParticulars, setDepositParticulars] = useState<string[]>(particulars);
+  const [stampParticularsList, setStampParticularsList] = useState<string[]>(stampParticulars);
+  const [balanceParticularsList, setBalanceParticularsList] = useState<string[]>(balanceParticulars);
+  const [mgvclParticularsList, setMgvclParticularsList] = useState<string[]>(mgvclParticulars);
+  const [expencesParticularsList, setExpencesParticularsList] = useState<string[]>(expencesParticulars);
+  const [onlinePaymentParticularsList, setOnlinePaymentParticularsList] = useState<string[]>(onlinePaymentParticulars);
+  const [operatorSignature, setOperatorSignature] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -241,6 +250,78 @@ const NewReportPage: React.FC = () => {
       setAmounts(adjustedAmounts);
     }
   };
+
+  const handleRightClick = (e: React.MouseEvent, fieldType: string, index: number, currentName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      fieldType,
+      index,
+      currentName
+    });
+    setEditFieldName(currentName);
+  };
+
+  const handleUpdateFieldName = () => {
+    if (!editFieldName.trim() || !contextMenu) return;
+
+    const { fieldType, index } = contextMenu;
+    const newName = editFieldName.trim().toUpperCase();
+
+    switch (fieldType) {
+      case 'income':
+        const newServices = [...services];
+        newServices[index] = newName;
+        setServices(newServices);
+        break;
+      case 'deposit':
+        const newDeposit = [...depositParticulars];
+        newDeposit[index] = newName;
+        setDepositParticulars(newDeposit);
+        break;
+      case 'stamp':
+        const newStamp = [...stampParticularsList];
+        newStamp[index] = newName;
+        setStampParticularsList(newStamp);
+        break;
+      case 'balance':
+        const newBalance = [...balanceParticularsList];
+        newBalance[index] = newName;
+        setBalanceParticularsList(newBalance);
+        break;
+      case 'mgvcl':
+        const newMgvcl = [...mgvclParticularsList];
+        newMgvcl[index] = newName;
+        setMgvclParticularsList(newMgvcl);
+        break;
+      case 'expences':
+        const newExpences = [...expencesParticularsList];
+        newExpences[index] = newName;
+        setExpencesParticularsList(newExpences);
+        break;
+      case 'onlinePayment':
+        const newOnlinePayment = [...onlinePaymentParticularsList];
+        newOnlinePayment[index] = newName;
+        setOnlinePaymentParticularsList(newOnlinePayment);
+        break;
+    }
+
+    setContextMenu(null);
+    setEditFieldName("");
+  };
+
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setContextMenu(null);
+    };
+
+    if (contextMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [contextMenu]);
 
   const incomeTotal = calculateTotal(services, "income");
   const depositTotal = calculateTotal(particulars, "deposit");
@@ -686,6 +767,7 @@ const NewReportPage: React.FC = () => {
               <div class="signature-box">
                 <div><strong>PREPARED BY</strong></div>
                 <div class="signature-line"></div>
+                <div>${operatorSignature.trim() || username.trim() || 'N/A'}</div>
                 <div style="font-size: 9px; margin-top: 5px;">${new Date().toLocaleString()}</div>
               </div>
               <div class="signature-box">
@@ -736,35 +818,36 @@ const NewReportPage: React.FC = () => {
     setLoading(true);
     const reportData = {
       username: username.trim(),
+      prepared_by: operatorSignature.trim() || username.trim(),
       income: services.map((service, index) => ({
         name: service,
         amount: amounts[`income-${index}`] || 0,
       })),
-      deposit: particulars.map((particular, index) => ({
+      deposit: depositParticulars.map((particular, index) => ({
         name: particular,
         amount: amounts[`deposit-${index}`] || 0,
       })),
-      stamp: stampParticulars.map((particular, index) => ({
+      stamp: stampParticularsList.map((particular, index) => ({
         name: particular,
         amount: amounts[`stamp-${index}`] || 0,
         remark: remarks[`stamp-${index}`] || "",
       })),
-      balance: balanceParticulars.map((particular, index) => ({
+      balance: balanceParticularsList.map((particular, index) => ({
         name: particular,
         amount: amounts[`balance-${index}`] || 0,
         remark: remarks[`balance-${index}`] || "",
       })),
-      mgvcl: mgvclParticulars.map((particular, index) => ({
+      mgvcl: mgvclParticularsList.map((particular, index) => ({
         name: particular,
         amount: amounts[`mgvcl-${index}`] || 0,
         remark: remarks[`mgvcl-${index}`] || "",
       })),
-      expences: expencesParticulars.map((particular, index) => ({
+      expences: expencesParticularsList.map((particular, index) => ({
         name: particular,
         amount: amounts[`expences-${index}`] || 0,
         remark: remarks[`expences-${index}`] || "",
       })),
-      onlinePayment: onlinePaymentParticulars.map((particular, index) => ({
+      onlinePayment: onlinePaymentParticularsList.map((particular, index) => ({
         name: particular,
         amount: amounts[`onlinePayment-${index}`] || 0,
         remark: remarks[`onlinePayment-${index}`] || "",
@@ -806,7 +889,7 @@ const NewReportPage: React.FC = () => {
     }
   };
 
-  const renderTable = (title: string, items: string[], prefix: string, showRemarks: boolean = false, bgColor: string = "bg-blue-50", allowCustom: boolean = false) => (
+  const renderTable = (title: string, items: string[], prefix: string, showRemarks: boolean = false, bgColor: string = "bg-blue-50", allowCustom: boolean = false, fieldType?: string) => (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
       <div className={`${bgColor} px-6 py-4 border-b`}>
         <div className="flex justify-between items-center">
@@ -843,7 +926,11 @@ const NewReportPage: React.FC = () => {
             {items.map((item, index) => (
               <tr key={index} className="hover:bg-gray-50 transition-colors">
                 <td className="py-4 px-6 text-sm text-gray-900">{index + 1}</td>
-                <td className="py-4 px-6 text-sm font-medium text-gray-900">
+                <td 
+                  className="py-4 px-6 text-sm font-medium text-gray-900 cursor-context-menu"
+                  onContextMenu={(e) => fieldType && handleRightClick(e, fieldType, index, item)}
+                  title="Right-click to edit field name"
+                >
                   <div className="flex items-center">
                     {item}
                     {allowCustom && index >= defaultServices.length && (
@@ -1052,13 +1139,13 @@ const NewReportPage: React.FC = () => {
           </div>
         )}
 
-        {renderTable("INCOME", services, "income", false, "bg-green-50", true)}
-        {renderTable("DEPOSIT AMOUNT (APEL RAKAM)", particulars, "deposit", false, "bg-blue-50")}
-        {renderTable("STAMP PRINTING REPORT", stampParticulars, "stamp", true, "bg-purple-50")}
-        {renderTable("BALANCE (BACHAT RAKAM)", balanceParticulars, "balance", true, "bg-yellow-50")}
-        {renderTable("MGVCL REPORT", mgvclParticulars, "mgvcl", true, "bg-indigo-50")}
-        {renderTable("EXPENSES", expencesParticulars, "expences", true, "bg-red-50")}
-        {renderTable("ONLINE PAYMENT", onlinePaymentParticulars, "onlinePayment", true, "bg-teal-50")}
+        {renderTable("INCOME", services, "income", false, "bg-green-50", true, "income")}
+        {renderTable("DEPOSIT AMOUNT (APEL RAKAM)", depositParticulars, "deposit", false, "bg-blue-50", false, "deposit")}
+        {renderTable("STAMP PRINTING REPORT", stampParticularsList, "stamp", true, "bg-purple-50", false, "stamp")}
+        {renderTable("BALANCE (BACHAT RAKAM)", balanceParticularsList, "balance", true, "bg-yellow-50", false, "balance")}
+        {renderTable("MGVCL REPORT", mgvclParticularsList, "mgvcl", true, "bg-indigo-50", false, "mgvcl")}
+        {renderTable("EXPENSES", expencesParticularsList, "expences", true, "bg-red-50", false, "expences")}
+        {renderTable("ONLINE PAYMENT", onlinePaymentParticularsList, "onlinePayment", true, "bg-teal-50", false, "onlinePayment")}
 
         {/* Cash Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -1076,25 +1163,26 @@ const NewReportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Username Section */}
+        {/* Username and Signature Section */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="max-w-md mx-auto relative username-input-container">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Username (Required for submission)
-            </label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => {
-                setUsername(e.target.value);
-                setShowUsernameSuggestions(true);
-              }}
-              onFocus={() => setShowUsernameSuggestions(true)}
-              placeholder="Enter your username (type to see suggestions)"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              autoComplete="off"
-              required
-            />
+          <div className="max-w-md mx-auto space-y-6">
+            <div className="relative username-input-container">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Username (Required for submission)
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setShowUsernameSuggestions(true);
+                }}
+                onFocus={() => setShowUsernameSuggestions(true)}
+                placeholder="Enter your username (type to see suggestions)"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                autoComplete="off"
+                required
+              />
 
             {/* Username Suggestions Dropdown */}
             {showUsernameSuggestions && usernameSuggestions.length > 0 && (
@@ -1134,14 +1222,31 @@ const NewReportPage: React.FC = () => {
             )}
 
             {!username.trim() && (
-              <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
-            )}
-            
-            {usernameSuggestions.length > 0 && (
+                <p className="text-red-500 text-sm mt-1">Username is required to submit the report</p>
+              )}
+              
+              {usernameSuggestions.length > 0 && (
+                <p className="text-gray-500 text-xs mt-1">
+                  💡 Click on the input field to see previously used usernames
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Operator Signature (Optional)
+              </label>
+              <input
+                type="text"
+                value={operatorSignature}
+                onChange={(e) => setOperatorSignature(e.target.value)}
+                placeholder="Enter operator's name for signature"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
               <p className="text-gray-500 text-xs mt-1">
-                💡 Click on the input field to see previously used usernames
+                यह नाम print में "PREPARED BY" section में दिखेगा
               </p>
-            )}
+            </div>
           </div>
         </div>
 
@@ -1442,6 +1547,70 @@ const NewReportPage: React.FC = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Context Menu for Editing Field Names */}
+        {contextMenu && (
+          <>
+            <div
+              className="fixed inset-0 z-[9999]"
+              onClick={() => {
+                setContextMenu(null);
+                setEditFieldName("");
+              }}
+            />
+            <div
+              className="fixed bg-white rounded-lg shadow-2xl border-2 border-blue-500 z-[10000] min-w-[300px]"
+              style={{
+                top: `${contextMenu.y}px`,
+                left: `${contextMenu.x}px`
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+            <div className="p-4">
+              <h4 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                <span className="text-blue-600 mr-2">✏️</span>
+                Edit Field Name
+              </h4>
+              <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">Current Name:</label>
+                <div className="bg-gray-100 px-3 py-2 rounded text-sm font-medium text-gray-700">
+                  {contextMenu.currentName}
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-xs text-gray-600 mb-1">New Name:</label>
+                <input
+                  type="text"
+                  value={editFieldName}
+                  onChange={(e) => setEditFieldName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleUpdateFieldName()}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="Enter new field name"
+                  autoFocus
+                />
+              </div>
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    setContextMenu(null);
+                    setEditFieldName("");
+                  }}
+                  className="flex-1 px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateFieldName}
+                  disabled={!editFieldName.trim()}
+                  className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+          </div>
+          </>
         )}
 
         {/* Onboarding Modal */}

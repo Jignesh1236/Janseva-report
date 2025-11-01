@@ -1094,8 +1094,8 @@ const AdminPage: React.FC = () => {
               <div class="signature-box">
                 <div><strong>PREPARED BY</strong></div>
                 <div class="signature-line"></div>
-                <div>${report.username || 'N/A'}</div>
-                <div style="font-size: 9px; margin-top: 5px;">${new Date().toLocaleString()}</div>
+                <div>${report.prepared_by || report.username || 'N/A'}</div>
+                <div style="font-size: 9px; margin-top: 5px;">${new Date(report.timestamp).toLocaleString()}</div>
               </div>
               <div class="signature-box">
                 <div><strong>SUPERVISOR SIGN</strong></div>

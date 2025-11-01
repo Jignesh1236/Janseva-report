@@ -20,6 +20,8 @@ export async function POST(request: NextRequest) {
 
     // Prepare data for Supabase
     const report = {
+      username: reportData.username,
+      prepared_by: reportData.prepared_by || reportData.username, // Use prepared_by or fallback to username
       income: reportData.income || {},
       deposit: reportData.deposit || {},
       stamp: reportData.stamp || {},
@@ -29,7 +31,6 @@ export async function POST(request: NextRequest) {
       online: reportData.onlinePayment || [], // Map onlinePayment to online field
       cash: reportData.cash || 0, // Save cash as direct number value
       totals: reportData.totals || {},
-      username: reportData.username, // Add username field
       timestamp: reportData.timestamp || new Date().toISOString(),
     };
 
@@ -121,7 +122,7 @@ export async function GET(request: NextRequest) {
 
     // Filter data based on user permissions and username
     let filteredData = data || [];
-    
+
     // For regular users, only show their own reports
     if (authResult.role === 'user' && authResult.username !== 'admin') {
       filteredData = data?.filter(report => report.username === authResult.username) || [];
