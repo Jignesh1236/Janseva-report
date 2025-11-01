@@ -46,6 +46,7 @@ interface Report {
   cash?: number;
   totals: any;
   timestamp: string;
+  prepared_by?: string;
   lastModified?: string;
   auditLog?: Array<{
     timestamp: string;
