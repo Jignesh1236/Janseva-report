@@ -108,7 +108,7 @@ const EditReportForm: React.FC<{
   const updateReportDate = (dateString: string) => {
     console.log("updateReportDate called with:", dateString);
     const updatedReport = { ...editedReport };
-    
+
     if (dateString && dateString.trim() !== '') {
       try {
         const date = new Date(dateString);
@@ -513,9 +513,7 @@ const AdminPage: React.FC = () => {
   const [editMode, setEditMode] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "income" | "expenses">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    "today" | "week" | "month" | "year"
-  >("month");
+  
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [minIncome, setMinIncome] = useState("");
   const [maxIncome, setMaxIncome] = useState("");
@@ -1312,43 +1310,8 @@ const AdminPage: React.FC = () => {
   };
 
   const calculateStats = () => {
-    const now = new Date();
-    let periodReports = reports;
-
-    switch (selectedPeriod) {
-      case "today":
-        periodReports = reports.filter((report) => {
-          const reportDate = new Date(report.timestamp);
-          return reportDate.toDateString() === now.toDateString();
-        });
-        break;
-      case "week":
-        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        periodReports = reports.filter(
-          (report) => new Date(report.timestamp) >= weekAgo,
-        );
-        break;
-      case "month":
-        const monthAgo = new Date(
-          now.getFullYear(),
-          now.getMonth() - 1,
-          now.getDate(),
-        );
-        periodReports = reports.filter(
-          (report) => new Date(report.timestamp) >= monthAgo,
-        );
-        break;
-      case "year":
-        const yearAgo = new Date(
-          now.getFullYear() - 1,
-          now.getMonth(),
-          now.getDate(),
-        );
-        periodReports = reports.filter(
-          (report) => new Date(report.timestamp) >= yearAgo,
-        );
-        break;
-    }
+    // Use filteredReports instead of reports to reflect current filters
+    const periodReports = filteredReports;
 
     const totalIncome = periodReports.reduce((acc, report) => {
             return acc + (report.totals?.income || 0);
@@ -1513,24 +1476,6 @@ const AdminPage: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Period Selector */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-2 bg-white p-4 rounded-lg shadow">
-            <Calendar className="h-5 w-5 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Time Period:</span>
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value as typeof selectedPeriod)}
-              className="ml-2 px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-            </select>
-          </div>
-        </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
