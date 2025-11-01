@@ -17,6 +17,7 @@ interface Report {
   cash?: number | { amount: number };
   totals: any;
   timestamp: string;
+  prepared_by?: string;
 }
 
 const ViewReportsPage: React.FC = () => {
