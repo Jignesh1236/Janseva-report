@@ -55,7 +55,7 @@ export default function AboutPage() {
         <div className="max-w-2xl w-full bg-white/90 rounded-xl shadow-lg p-8 sm:p-12 mx-auto mt-8">
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <span className="absolute -top-1 -right-1 text-base font-black text-primary bg-white px-2 py-1 rounded-full shadow-md border-2 border-primary/30 transform scale-110 select-none">®</span>
+<span className="absolute -top-1 -right-1 text-base font-black text-primary transform scale-110 select-none">®</span>
               <Image
                 src="/icons/image-removebg-preview (1).png"
                 alt="Jansevakendra Logo"
@@ -85,3 +85,4 @@ export default function AboutPage() {
     </div>
   );
 }
+
