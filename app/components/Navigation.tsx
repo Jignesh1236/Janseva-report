@@ -71,12 +71,12 @@ const Navigation: React.FC<NavigationProps> = ({ language, translations, setLang
         <div className="flex justify-between items-center h-16">
           <Link href="/" className="flex items-center space-x-2 group">
             <div className="relative">
-              <span className="absolute -top-1 -right-1 text-[10px] font-semibold text-primary transform scale-110 select-none">®</span>
+              <span className="absolute -top-2 -right-2 text-lg font-black text-primary bg-white px-2 py-1 rounded-full shadow-md border-2 border-primary/30 transform scale-110 select-none">®</span>
               <Image
                 src="/icons/image-removebg-preview (1).png"
                 alt="Janseva Kendra (Private) Logo"
-                width={44}
-                height={44}
+                width={60}
+                height={60}
                 className="transition-transform duration-200 group-hover:scale-110"
               />
             </div>
