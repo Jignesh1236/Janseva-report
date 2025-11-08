@@ -1,218 +1,87 @@
-'use client';
-
+"use client";
 import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { usePathname } from 'next/navigation';
 
-interface Translations {
-  about: string;
-  services: string;
-  contact: string;
-  visitCenter: string;
-  onlineTools: string;
-  ourServices: string;
-  helpingYou: string;
-  needAssistance: string;
-  jansevakendra: string;
-  [key: string]: string;
-}
-
-interface NavigationProps {
-  language: string;
-  translations: Translations;
-  setLanguage?: (lang: string) => void;
-  currentLanguage?: string;
-}
-
-const Navigation: React.FC<NavigationProps> = ({ language, translations, setLanguage, currentLanguage }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-  };
-
-  const menuVariants = {
-    closed: {
-      opacity: 0,
-      x: "100%",
-      transition: {
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    },
-    open: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.3,
-        ease: "easeInOut"
-      }
-    }
-  };
-
-  const linkVariants = {
-    closed: { opacity: 0, x: 20 },
-    open: (i: number) => ({
-      opacity: 1,
-      x: 0,
-      transition: {
-        delay: i * 0.1,
-        duration: 0.3
-      }
-    })
-  };
-
-  return (
-    <nav className="bg-white/90 backdrop-blur-md shadow-xl rounded-b-2xl border-b border-blue-200 transition-all duration-300 fixed top-0 left-0 right-0 z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="flex items-center space-x-2 group">
-            <div className="relative">
-              <span className="absolute -top-2 -right-2 text-lg font-black text-primary bg-white px-2 py-1 rounded-full shadow-md border-2 border-primary/30 transform scale-110 select-none">®</span>
-              <Image
-                src="/icons/image-removebg-preview (1).png"
-                alt="Janseva Kendra (Private) Logo"
-                width={60}
-                height={60}
-                className="transition-transform duration-200 group-hover:scale-110"
-              />
-            </div>
-            <span className="text-xl font-bold text-gray-800 group-hover:text-primary transition-colors duration-200">
-              {translations.jansevakendra}
-            </span>
-          </Link>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex space-x-8 items-center">
-            {[
-              { href: '/', label: 'Home' },
-              { href: '/about', label: translations.about },
-              { href: '/services', label: translations.services },
-              { href: '/location', label: translations.visitCenter },
-              { href: '/report', label: translations.reports || 'Reports' },
-              { href: '/contact', label: translations.contact }
-            ].map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`relative px-3 py-2 text-gray-800 font-semibold transition-colors duration-300 hover:text-primary focus:text-primary group ${isActive ? 'text-primary' : ''}`}
-                >
-                  <span>{link.label}</span>
-                  <span className={`absolute left-0 -bottom-1 w-full h-0.5 bg-gradient-to-r from-blue-500 to-green-500 rounded transition-all duration-300 ${isActive ? 'opacity-100 scale-x-100' : 'opacity-0 scale-x-0'} group-hover:opacity-100 group-hover:scale-x-100`}></span>
-                </Link>
-              );
-            })}
-            {/* Language Switcher */}
-            {setLanguage && (
-              <div className="flex items-center space-x-0.5 ml-6 border rounded overflow-hidden">
-                <button
-                  className={`px-2 py-1 text-sm font-semibold transition-colors duration-200 focus:outline-none ${currentLanguage === 'en' ? 'bg-primary text-white' : 'bg-white text-primary hover:bg-blue-50'}`}
-                  onClick={() => setLanguage('en')}
-                >
-                  EN
-                </button>
-                <button
-                  className={`px-2 py-1 text-sm font-semibold transition-colors duration-200 focus:outline-none border-l ${currentLanguage === 'gu' ? 'bg-primary text-white' : 'bg-white text-primary hover:bg-blue-50'}`}
-                  onClick={() => setLanguage('gu')}
-                >
-                  ગુજરાતી
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden p-2 rounded-md text-gray-600 hover:text-primary focus:outline-none"
-            aria-label="Toggle menu"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {isOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Mobile Navigation */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={menuVariants}
-            className="md:hidden fixed inset-0 z-60 bg-white/95 backdrop-blur-lg shadow-2xl"
-          >
-            <div className="container mx-auto px-4 py-8">
-              <div className="flex flex-col space-y-6">
-                {[
-                  { href: '/', label: 'Home' },
-                  { href: '/about', label: translations.about },
-                  { href: '/services', label: translations.services },
-                  { href: '/offers', label: translations.offers || 'Offers' },
-                  { href: '/location', label: translations.visitCenter },
-                  { href: '/report', label: translations.reports || 'Reports' },
-                  { href: '/contact', label: translations.contact }
-                ].map((link, i) => (
-                  <motion.div
-                    key={link.href}
-                    custom={i}
-                    variants={linkVariants}
-                    initial="closed"
-                    animate="open"
-                    exit="closed"
-                  >
-                    <Link
-                      href={link.href}
-                      className="block text-2xl font-semibold text-gray-900 hover:text-primary transition-colors duration-300 px-3 py-3 rounded-lg focus:bg-blue-50 focus:outline-none"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      {link.label}
-                    </Link>
-                  </motion.div>
-                ))}
-                {/* Mobile Language Switcher */}
-                {setLanguage && (
-                  <div className="flex items-center space-x-0.5 mt-8 border rounded overflow-hidden self-center">
-                <button
-                  className={`px-3 py-2 text-base font-semibold transition-colors duration-300 focus:outline-none ${currentLanguage === 'en' ? 'bg-primary text-white' : 'bg-white text-primary hover:bg-blue-50'}`}
-                  onClick={() => setLanguage('en')}
-                >
-                  EN
-                </button>
-                <button
-                  className={`px-3 py-2 text-base font-semibold transition-colors duration-300 focus:outline-none border-l ${currentLanguage === 'gu' ? 'bg-primary text-white' : 'bg-white text-primary hover:bg-blue-50'}`}
-                  onClick={() => setLanguage('gu')}
-                >
-                  ગુજરાતી
-                </button>
-              </div>
-            )}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </nav>
-  );
+// Translation dictionary
+const translations = {
+  en: {
+    about: "About",
+    services: "Services",
+    contact: "Contact",
+    visitCenter: "Visit Our Center",
+    onlineTools: "Online Tools",
+    ourServices: "Our Services",
+    helpingYou: "Helping You, Every Step of the Way",
+    needAssistance: "Need Assistance?",
+    youCan: "You can:",
+    callUsAt: "Call us at:",
+    orVisit: "Or visit our center today!",
+    contactUs: "Contact Us",
+    quickLinks: "Quick Links",
+    followUs: "Follow Us",
+    allRightsReserved: "All rights reserved.",
+    loading: "Loading...",
+    jansevakendra: "Janseva Kendra (Private)"
+  },
+  gu: {
+    about: "અમારા વિશે",
+    services: "સેવાઓ",
+    contact: "સંપર્ક કરો",
+    visitCenter: "અમારા કેન્દ્રની મુલાકાત લો",
+    onlineTools: "ઓનલાઈન સાધનો",
+    ourServices: "અમારી સેવાઓ",
+    helpingYou: "દરેક પગલે તમારી સાથે",
+    needAssistance: "સહાયની જરૂર છે?",
+    youCan: "તમે કરી શકો છો:",
+    callUsAt: "અમને કૉલ કરો:",
+    orVisit: "અથવા આજે જ અમારા કેન્દ્રની મુલાકાત લો!",
+    contactUs: "સંપર્ક કરો",
+    quickLinks: "ઝડપી લિંક્સ",
+    followUs: "અમને ફોલો કરો",
+    allRightsReserved: "બધા અધિકારો સુરક્ષિત છે.",
+    loading: "લોડ થઈ રહ્યું છે...",
+    jansevakendra: "જનસેવા કેન્દ્ર (પ્રાઇવેટ)"
+  }
 };
 
-export default Navigation;
+export default function AboutPage() {
+  const [language, setLanguage] = useState('en');
+  const t = translations[language as keyof typeof translations];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+      <div className="py-12 px-4 flex items-center justify-center">
+        <div className="max-w-2xl w-full bg-white/90 rounded-xl shadow-lg p-8 sm:p-12 mx-auto mt-8">
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <span className="absolute -top-1 -right-1 text-base font-black text-primary bg-white px-2 py-1 rounded-full shadow-md border-2 border-primary/30 transform scale-110 select-none">®</span>
+              <Image
+                src="/icons/image-removebg-preview (1).png"
+                alt="Jansevakendra Logo"
+                width={80}
+                height={80}
+                className="transition-transform duration-200 hover:scale-110"
+              />
+            </div>
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-primary mb-4 text-center">About Janseva Kendra (Private)</h1>
+          <p className="text-lg text-gray-700 mb-6 text-center">
+            <span className="font-semibold text-primary">From Documents to Digital – We Make It Easy!</span>
+          </p>
+          <p className="text-gray-700 mb-4">
+            <strong>Janseva Kendra (Private)</strong> is dedicated to bridging the gap between citizens and essential government and digital services. Our mission is to empower the community by providing a wide range of services under one roof, making your life easier and more efficient.
+          </p>
+          <p className="text-gray-700 mb-4">
+            Whether you need help with Aadhaar, PAN, insurance, bill payments, travel bookings, or digital assistance, our experienced team is here to support you every step of the way. We believe in transparency, reliability, and a customer-first approach.
+          </p>
+          <div className="mt-8 text-center">
+            <span className="inline-block bg-primary/10 text-primary px-4 py-2 rounded-full font-semibold">
+              Your trusted partner for all government and digital services.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
