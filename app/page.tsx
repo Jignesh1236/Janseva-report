@@ -189,8 +189,8 @@ function SplashLoader() {
           <div
             className="relative"
             style={{
-              width: 150,
-              height: 150,
+              width: 120,
+              height: 120,
               background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #e2e8f0 100%)',
               borderRadius: 24,
               boxShadow: '0 25px 80px rgba(59, 130, 246, 0.4), 0 12px 20px rgba(0,0,0,0.15)',
@@ -206,8 +206,8 @@ function SplashLoader() {
             <img
               src="/icons/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp"
               alt="Jan Seva Kendra Private Logo"
-              width={100}
-              height={100}
+              width={80}
+              height={80}
               style={{ borderRadius: 20, filter: 'drop-shadow(0 6px 12px rgba(0,0,0,0.15))' }}
             />
           </div>
@@ -611,13 +611,13 @@ export default function Home() {
               >
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-3xl opacity-40 group-hover:opacity-60 transition-opacity duration-500 scale-125"></div>
-                  <div className="relative bg-white/95 dark:bg-gray-800/95 p-8 rounded-full shadow-2xl border-3 border-white/40 backdrop-blur-lg">
-                    <span className="absolute -top-3 -right-3 text-3xl font-black text-blue-600 bg-white px-4 py-3 rounded-full shadow-lg transform rotate-12 border-2 border-blue-300">®</span>
+                  <div className="relative bg-white/95 dark:bg-gray-800/95 p-6 rounded-full shadow-2xl border-3 border-white/40 backdrop-blur-lg">
+                    <span className="absolute -top-2 -right-2 text-xl font-black text-blue-600 bg-white px-3 py-2 rounded-full shadow-lg transform rotate-12 border-2 border-blue-300">®</span>
                     <img
                       src="/icons/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp"
                       alt="Jan Seva Kendra Private Logo"
-                      width={200}
-                      height={200}
+                      width={160}
+                      height={160}
                       className="transition-all duration-500 group-hover:scale-110 group-hover:rotate-6 drop-shadow-2xl"
                     />
                   </div>
