@@ -612,7 +612,7 @@ export default function Home() {
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-3xl opacity-40 group-hover:opacity-60 transition-opacity duration-500 scale-125"></div>
                   <div className="relative bg-white/95 dark:bg-gray-800/95 p-6 rounded-full shadow-2xl border-3 border-white/40 backdrop-blur-lg">
-                    <span className="absolute -top-3 -right-3 text-sm font-bold text-blue-600 bg-white px-3 py-1.5 rounded-full shadow-lg transform rotate-15 border border-blue-200">TM</span>
+                    <span className="absolute -top-3 -right-3 text-sm font-bold text-blue-600 bg-white px-3 py-1.5 rounded-full shadow-lg transform rotate-15 border border-blue-200">®</span>
                     <img
                       src="/icons/481573786_593041823723784_4398692427343624609_n-removebg-preview.webp"
                       alt="Jan Seva Kendra Private Logo"
