@@ -28,7 +28,8 @@ const ViewReportsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [isPrintLocked, setIsPrintLocked] = useState(true);
+  const [isPrintLocked, setIsPrintLocked] = useState(false);
+  const [useDraftPrint, setUseDraftPrint] = useState(true);
 
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -267,7 +268,7 @@ const ViewReportsPage: React.FC = () => {
   };
 
   const printReport = (report: Report) => {
-    if (isPrintLocked) {
+    if (useDraftPrint) {
       // Show temporary report with maintenance message
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -1178,13 +1179,8 @@ const ViewReportsPage: React.FC = () => {
 
                       <button
                         onClick={() => printReport(report)}
-                        disabled={isPrintLocked}
-                        className={`font-semibold py-3 px-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-1 text-sm ${
-                          isPrintLocked 
-                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-70' 
-                            : 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
-                        }`}
-                        title={isPrintLocked ? 'Print is temporarily locked - Full report under maintenance' : 'Print Report'}
+                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-1 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm"
+                        title="Print Report (Draft Version)"
                       >
                         <Printer className="h-4 w-4" />
                         <span className="hidden sm:inline">Print</span>
@@ -1304,16 +1300,11 @@ const ViewReportsPage: React.FC = () => {
 
                   <button
                     onClick={() => printReport(selectedReport)}
-                    disabled={isPrintLocked}
-                    className={`font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
-                      isPrintLocked 
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-70' 
-                        : 'bg-purple-600 hover:bg-purple-700 text-white'
-                    }`}
-                    title={isPrintLocked ? 'Print is temporarily locked - Full report under maintenance' : 'Print Report'}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    title="Print Report (Draft Version)"
                   >
                     <Printer className="h-5 w-5" />
-                    <span>{isPrintLocked ? 'Print (Under Maintenance)' : 'Print Report'}</span>
+                    <span>Print Report</span>
                   </button>
                 </div>
               </div>
