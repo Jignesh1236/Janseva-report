@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { Eye, Download, Printer, Calendar, FileText, TrendingUp, TrendingDown, DollarSign, User, Lock } from "lucide-react";
 
 interface Report {
@@ -29,6 +28,7 @@ const ViewReportsPage: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFilter, setDateFilter] = useState("");
+  const [isPrintLocked, setIsPrintLocked] = useState(true);
 
   // Authentication states
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -267,6 +267,178 @@ const ViewReportsPage: React.FC = () => {
   };
 
   const printReport = (report: Report) => {
+    if (isPrintLocked) {
+      // Show temporary report with maintenance message
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        const reportDate = new Date(report.timestamp).toLocaleDateString('en-IN');
+        
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>JANSEVA-2025 Temporary Report</title>
+              <style>
+                * {
+                  margin: 0;
+                  padding: 0;
+                  box-sizing: border-box;
+                }
+                body { 
+                  font-family: 'Arial', sans-serif; 
+                  margin: 20px; 
+                  color: #000; 
+                  font-size: 12px;
+                  line-height: 1.6;
+                  background: white;
+                }
+                .container {
+                  max-width: 600px;
+                  margin: 0 auto;
+                }
+                .header { 
+                  text-align: center; 
+                  margin-bottom: 30px;
+                  padding-bottom: 15px;
+                  border-bottom: 3px solid #ff9800;
+                }
+                .header h1 { 
+                  font-size: 20px; 
+                  margin: 10px 0; 
+                  color: #d32f2f;
+                }
+                .maintenance-box {
+                  background-color: #fff3e0;
+                  border: 3px solid #ff9800;
+                  border-radius: 8px;
+                  padding: 20px;
+                  margin: 20px 0;
+                  text-align: center;
+                }
+                .maintenance-box h2 {
+                  color: #e65100;
+                  font-size: 18px;
+                  margin-bottom: 10px;
+                }
+                .maintenance-box p {
+                  color: #bf360c;
+                  font-size: 14px;
+                  font-weight: bold;
+                }
+                .summary-box {
+                  border: 2px solid #2196f3;
+                  padding: 15px;
+                  margin: 20px 0;
+                  border-radius: 5px;
+                  background-color: #f5f5f5;
+                }
+                .summary-box h3 {
+                  margin: 0 0 10px 0;
+                  font-size: 14px;
+                  color: #1976d2;
+                  border-bottom: 2px solid #2196f3;
+                  padding-bottom: 8px;
+                }
+                .summary-row {
+                  display: flex;
+                  justify-content: space-between;
+                  margin: 8px 0;
+                  padding: 5px 0;
+                }
+                .summary-row .label {
+                  font-weight: bold;
+                  color: #333;
+                }
+                .summary-row .value {
+                  text-align: right;
+                  color: #2196f3;
+                  font-weight: bold;
+                }
+                .info {
+                  margin: 15px 0;
+                  padding: 10px;
+                  background-color: #e3f2fd;
+                  border-left: 4px solid #2196f3;
+                  border-radius: 3px;
+                }
+                .info strong {
+                  color: #1976d2;
+                }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="header">
+                  <h1>JANSEVA-2025 (TEMPORARY REPORT)</h1>
+                  <p style="color: #666; margin-top: 5px;">Quick Summary Report</p>
+                </div>
+
+                <div class="maintenance-box">
+                  <h2>⚠️ UNDER MAINTENANCE</h2>
+                  <p>Full Report Printing is Currently Under Maintenance</p>
+                  <p style="font-size: 12px; margin-top: 10px;">Please try again later</p>
+                </div>
+
+                <div class="info">
+                  <strong>Date:</strong> ${reportDate}<br>
+                  <strong>User:</strong> ${report.username || 'N/A'}<br>
+                  <strong>Report ID:</strong> ${report.id.slice(0, 8)}...
+                </div>
+
+                <div class="summary-box">
+                  <h3>Quick Financial Summary (Temporary)</h3>
+                  <div class="summary-row">
+                    <span class="label">Service Income:</span>
+                    <span class="value">₹${(report.totals?.income || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Deposit Amount:</span>
+                    <span class="value">₹${(report.totals?.deposit || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Stamp Amount:</span>
+                    <span class="value">₹${(report.totals?.stamp || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Balance:</span>
+                    <span class="value">₹${(report.totals?.balance || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">MGVCL:</span>
+                    <span class="value">₹${(report.totals?.mgvcl || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label">Online Payment:</span>
+                    <span class="value">₹${(report.totals?.onlinePayment || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row" style="border-top: 2px solid #999; margin-top: 10px; padding-top: 10px;">
+                    <span class="label">Total Expenses:</span>
+                    <span class="value">₹${(report.totals?.expences || 0).toFixed(2)}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span class="label" style="color: #2e7d32; font-size: 14px;">NET INCOME:</span>
+                    <span class="value" style="color: #2e7d32; font-size: 14px;">₹${((report.totals?.income || 0) - (report.totals?.expences || 0)).toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <div class="info" style="background-color: #fce4ec; border-left-color: #c2185b;">
+                  <strong style="color: #c2185b;">Notice:</strong> This is a temporary quick summary report. Complete detailed report printing is under maintenance. We will restore this feature soon.
+                </div>
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        
+        setTimeout(() => {
+          printWindow.print();
+        }, 500);
+      } else {
+        alert('Please allow pop-ups to print the report');
+      }
+      return;
+    }
+
+    // Original full report printing (when not locked)
     const printWindow = window.open('', '_blank');
     if (printWindow) {
       const netAmount = calculateNetAmount(report);
@@ -765,12 +937,12 @@ const ViewReportsPage: React.FC = () => {
           </div>
 
           <div className="mt-8 text-center">
-            <Link
+            <a
               href="/"
               className="text-blue-600 hover:text-blue-800 text-sm"
             >
               ← Back to Home
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -826,13 +998,13 @@ const ViewReportsPage: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
-              <Link
+              <a
                 href="/report"
                 className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <FileText className="h-5 w-5" />
                 <span>Create New Report</span>
-              </Link>
+              </a>
               <button
                 onClick={handleLogout}
                 className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -897,13 +1069,13 @@ const ViewReportsPage: React.FC = () => {
                 : "Try adjusting your search filters or date range to find more reports"}
             </p>
             {reports.length === 0 ? (
-              <Link
+              <a
                 href="/report"
                 className="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-4 px-8 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <FileText className="h-5 w-5" />
                 <span>Create Your First Report</span>
-              </Link>
+              </a>
             ) : (
               <button
                 onClick={() => {
@@ -1006,7 +1178,13 @@ const ViewReportsPage: React.FC = () => {
 
                       <button
                         onClick={() => printReport(report)}
-                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-semibold py-3 px-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-1 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 text-sm"
+                        disabled={isPrintLocked}
+                        className={`font-semibold py-3 px-3 rounded-xl transition-all duration-200 flex items-center justify-center space-x-1 text-sm ${
+                          isPrintLocked 
+                            ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-70' 
+                            : 'bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5'
+                        }`}
+                        title={isPrintLocked ? 'Print is temporarily locked - Full report under maintenance' : 'Print Report'}
                       >
                         <Printer className="h-4 w-4" />
                         <span className="hidden sm:inline">Print</span>
@@ -1126,10 +1304,16 @@ const ViewReportsPage: React.FC = () => {
 
                   <button
                     onClick={() => printReport(selectedReport)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                    disabled={isPrintLocked}
+                    className={`font-bold py-3 px-6 rounded-lg transition-colors duration-200 flex items-center space-x-2 ${
+                      isPrintLocked 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-70' 
+                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                    }`}
+                    title={isPrintLocked ? 'Print is temporarily locked - Full report under maintenance' : 'Print Report'}
                   >
                     <Printer className="h-5 w-5" />
-                    <span>Print Report</span>
+                    <span>{isPrintLocked ? 'Print (Under Maintenance)' : 'Print Report'}</span>
                   </button>
                 </div>
               </div>
