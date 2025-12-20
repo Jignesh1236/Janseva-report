@@ -272,7 +272,7 @@ const ViewReportsPage: React.FC = () => {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         const reportDate = new Date(report.timestamp).toLocaleDateString('en-IN');
-        
+
         printWindow.document.write(`
           <html>
             <head>
@@ -428,7 +428,7 @@ const ViewReportsPage: React.FC = () => {
           </html>
         `);
         printWindow.document.close();
-        
+
         setTimeout(() => {
           printWindow.print();
         }, 500);
